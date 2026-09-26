@@ -26,6 +26,7 @@ names and commit footers.
 | SCM-EP0-US03 | Go service skeleton: config, logging, trace context, problem responses, admin server, graceful shutdown, migrations, Docker image, CI | core-business-service, telemetry-stream-service | BE | DONE |
 | SCM-EP0-US04 | Organization-wide contribution files and repository hygiene | .github, all | BE | DONE |
 | SCM-EP0-US05 | Demonstration kit: idempotent seed data (tenants, users, locations, products, lots), end-to-end scenario script, and runbook | platform-infrastructure | BE | TODO |
+| SCM-EP0-US06 | Frontend foundations per ADR-0020/0021/0022: scaffold, typed API client, BFF session, i18n, real-time client, CI (one per repository) | enterprise-dashboard, driver-mobile-pwa, public-trace-portal | FE | TODO |
 
 ### EP1 — Multi-tenancy, identity, and access control
 
@@ -36,7 +37,7 @@ names and commit footers.
 | SCM-EP1-US03 | Authentication: login, EdDSA access tokens, rotating refresh tokens, logout, JWKS, rate limiting | core-business-service | BE | TODO |
 | SCM-EP1-US04 | User management and own-password change | core-business-service | BE | TODO |
 | SCM-EP1-US05 | Access control policy function (per-action party, role, state, and context) | core-business-service | BE | TODO |
-| SCM-EP1-US06 | Registration, login, session handling, and user management screens | enterprise-dashboard | FE | TODO |
+| SCM-EP1-US06 | Registration, login, BFF session, user management, and settings screens | enterprise-dashboard | FE | TODO |
 
 ### EP2 — GS1 warehouse and transport management
 
@@ -51,8 +52,8 @@ names and commit footers.
 | SCM-EP2-US07 | Pickup handover: pickup code issuance and confirmation with SSCC scan and origin geo-fence | core-business-service | BE | TODO |
 | SCM-EP2-US08 | Transit checkpoints and delivery confirmation with destination geo-fence | core-business-service | BE | TODO |
 | SCM-EP2-US09 | Emergency lot recall across tenants with operational lock | core-business-service | BE | TODO |
-| SCM-EP2-US10 | Catalog, lot, inventory, shipment, delivery, and recall screens with GS1 barcode rendering | enterprise-dashboard | FE | TODO |
-| SCM-EP2-US11 | Driver flows: assignments, camera SSCC scan, pickup code entry, checkpoints, GPS capture | driver-mobile-pwa | FE | TODO |
+| SCM-EP2-US10 | Dashboard operations: overview, catalog, lots, inventory, shipments (create, assign, pickup code, delivery, cancel), recall, logistic label printing ([spec](frontend/enterprise-dashboard.md)) | enterprise-dashboard | FE | TODO |
+| SCM-EP2-US11 | PWA flows: driver assignments, pickup, checkpoints; dock receiving; offline read-only cache ([spec](frontend/driver-mobile-pwa.md)) | driver-mobile-pwa | FE | TODO |
 
 ### EP3 — Real-time cold-chain monitoring
 

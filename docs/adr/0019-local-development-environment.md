@@ -31,9 +31,13 @@ command. The frontend developer should not need a Go toolchain to get a working 
   | `web3` (M2, added with SCM-EP4-US01 and SCM-EP5-US01) | Local IPFS node (Kubo) and local EVM chain (Anvil) |
   | `observability` (M2, added with SCM-EP7-US02) | Prometheus, Loki, Alloy, Grafana |
 
-- **Gateway.** A local gateway on `http://localhost:8000` applies the production routing table. By default
-  it forwards to services running on the host (`go run`). With the `apps` profile it forwards to the
-  containers instead. Frontends use a single base URL either way.
+- **Gateway.** A local gateway applies the production routing table:
+  - `http://localhost:8000` for API clients;
+  - one origin per frontend on `:8001` (dashboard), `:8002` (PWA), and `:8003` (portal), which forward
+    non-API paths to the frontend dev servers on host ports 3001–3003 (ADR-0021).
+
+  By default the gateway forwards API paths to services running on the host (`go run`). With the `apps`
+  profile it forwards them to the containers instead.
 - **Bootstrap.** A first-start script creates the per-service databases, owner and runtime roles, and
   the TimescaleDB extension, reading passwords from `.env`. It creates no application tables.
 - **IoT fleet simulator.** Lives in `platform-infrastructure/simulator/` (added with SCM-EP3-US01):

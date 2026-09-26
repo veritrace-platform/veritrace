@@ -70,6 +70,22 @@ SSCC = extension digit (tenant setting, default 0)
 - The serial space is `10^(16 − len(GCP))`. When it is exhausted, issuance fails with `409 CONFLICT`,
   and the tenant must change its extension digit.
 
+### 3.1 SSCC on logistic labels
+
+- The dashboard prints one logistic label per shipment. It shows a **GS1-128** barcode with element
+  string `(00)` followed by the SSCC, the SSCC in human-readable form, the product name, the lot number,
+  and the destination name.
+- Scanners (PWA and dashboard) accept any of these and normalize them to an 18-digit SSCC before
+  validating the check digit:
+
+  | Scanned content | Normalization |
+  | --- | --- |
+  | GS1-128 or GS1 DataMatrix element string, with or without the `]C1`/`]d2` symbology identifier and FNC1 | Strip the identifier and FNC1, then take the 18 digits after AI `00` |
+  | QR with a GS1 Digital Link containing `/00/{sscc}` | Take the path segment after `/00/` |
+  | Plain 18 digits (QR or manual entry) | Use as is |
+
+- Anything else is rejected with an explanatory message. The user may fall back to manual entry.
+
 ## 4. GS1 Digital Link (M2)
 
 Consumer labels encode a GS1 Digital Link URI:

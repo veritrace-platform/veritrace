@@ -63,6 +63,8 @@ Host ports are defaults. If a port is taken, override it in `platform-infrastruc
 | 8090 / 8091 | telemetry-stream-service (API / admin) |
 | 8100 / 8101 | blockchain-relayer-service (API / admin, M2) |
 | 8085 | Kafka UI (`tools` profile) |
+| 8001 / 8002 / 8003 | Gateway origins for the dashboard, PWA, and portal (open these in the browser) |
+| 3001 / 3002 / 3003 | Frontend dev servers on the host (behind the gateway) |
 
 ## 4. Backend workflow (Go on the host)
 

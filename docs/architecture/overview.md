@@ -158,3 +158,4 @@ See [ADR-0014](../adr/0014-on-chain-commitments.md), [ADR-0015](../adr/0015-gasl
 | Security and cryptography | [security.md](security.md) |
 | Observability | [ADR-0017](../adr/0017-observability.md) |
 | Data model | [data-model.md](data-model.md) |
+| Frontend applications | [frontend/](../frontend/README.md), [ADR-0020](../adr/0020-frontend-stack.md), [ADR-0021](../adr/0021-frontend-origin-and-session.md), [ADR-0022](../adr/0022-driver-pwa-device-capabilities.md) |

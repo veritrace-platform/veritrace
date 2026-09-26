@@ -92,6 +92,7 @@ backend and frontend workflows.
 | **Domain** | [Glossary](docs/glossary.md) · [GS1 identifiers](docs/domain/gs1-identifiers.md) · [Shipment lifecycle](docs/domain/shipment-lifecycle.md) · [Access control](docs/domain/access-control.md) · [Cold-chain monitoring](docs/domain/cold-chain-monitoring.md) · [Public verification](docs/domain/public-verification.md) |
 | **Contracts** | [REST API](docs/contracts/rest-api.md) · [Messaging](docs/contracts/messaging.md) · [Smart contract](docs/contracts/smart-contract.md) · [Test vectors](docs/contracts/test-vectors/) |
 | **Decisions** | [Architecture decision records](docs/adr/README.md) |
+| **Frontends** | [Conventions](docs/frontend/README.md) · [Dashboard](docs/frontend/enterprise-dashboard.md) · [Driver PWA](docs/frontend/driver-mobile-pwa.md) · [Public portal](docs/frontend/public-trace-portal.md) |
 | **Guides** | [Development setup](docs/guides/development-setup.md) · [Engineering workflow](docs/guides/engineering-workflow.md) · [Coding standards](docs/guides/coding-standards.md) · [Frontend integration](docs/guides/frontend-integration.md) |
 
 ## Workspace tooling

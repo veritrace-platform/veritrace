@@ -65,9 +65,10 @@ for entry in "${repos[@]}"; do
 
   run gh api -X PATCH "repos/${org}/${repo}" \
     -f description="$description" -f homepage="$homepage" \
-    -F has_wiki=false -F allow_squash_merge=true -F allow_merge_commit=false -F allow_rebase_merge=false \
+    -F has_wiki=false -F allow_squash_merge=true -F allow_merge_commit=true -F allow_rebase_merge=false \
     -F delete_branch_on_merge=true -F allow_update_branch=true \
-    -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=PR_BODY
+    -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=PR_BODY \
+    -f merge_commit_title=PR_TITLE -f merge_commit_message=PR_BODY
 
   topics="$common_topics${extra_topics:+,$extra_topics}"
   topic_args=()

@@ -4,7 +4,7 @@
 
 | Branch | Purpose | Merges from |
 | --- | --- | --- |
-| `main` | Released code only. Every commit on `main` is tagged. | `develop` (release PR) |
+| `main` | Released code only. Every release merge on `main` is tagged. | `develop` (release PR, merge commit) |
 | `develop` | Integration branch; always builds and passes CI | Work branches |
 | `feat/<id>-<slug>` | New behavior, for example `feat/scm-ep1-us03-tenant-isolation` | — |
 | `fix/<slug>` | Bug fix | — |
@@ -36,8 +36,13 @@ The format is [Conventional Commits](https://www.conventionalcommits.org/):
   30 minutes.
 - The description states what changed, how it was verified, and which story it references (template
   provided organization-wide).
-- Pull requests are merged by **squash**, and the pull request title becomes the commit message. For that
-  reason the title follows the commit format.
+- **Work pull requests** (work branch → `develop`) are merged by **squash**. The pull request title
+  becomes the commit message, so the title follows the commit format.
+- **Release pull requests** (`develop` → `main`) are merged with a **merge commit**, never squash or
+  rebase. This keeps `main` an ancestor of `develop`, so later releases merge without conflicts. The
+  release is then tagged on `main`.
+- Multi-commit bootstrap branches that are already curated (for example an initial setup) may also be
+  merged into `develop` with a merge commit, to keep their individual commits.
 - A change that touches a contract (migration, OpenAPI, messaging document, ADR) updates it in the same
   pull request. A cross-repository contract change links the counterpart pull request.
 
@@ -76,7 +81,7 @@ both branches exist:
 | Setting | Value |
 | --- | --- |
 | Default branch | `develop` |
-| Merge button | Squash merging only; pull request title used as the commit message |
+| Merge button | Squash (work PRs, title as the commit message) and merge commits (release PRs); rebase merging disabled |
 | Branches | Delete head branches after merge |
 | Protection on `main` and `develop` | Require a pull request, require the CI status checks to pass, block force pushes and deletion |
 | Security | Enable Dependabot alerts and security updates, secret scanning, and private vulnerability reporting |

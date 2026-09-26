@@ -19,6 +19,7 @@ back here.
 | **Domain rules** | [Glossary](glossary.md) · [GS1 identifiers](domain/gs1-identifiers.md) · [Lots, inventory and shipment lifecycle](domain/shipment-lifecycle.md) · [Access control](domain/access-control.md) · [Cold-chain monitoring](domain/cold-chain-monitoring.md) · [Public verification (M2)](domain/public-verification.md) |
 | **Contracts** | [REST API](contracts/rest-api.md) · [Messaging: MQTT, Kafka, WebSocket](contracts/messaging.md) · [Smart contract (M2)](contracts/smart-contract.md) · [Shared test vectors](contracts/test-vectors/) |
 | **Decisions** | [Architecture decision records](adr/README.md) |
+| **Frontends** | [Overview and conventions](frontend/README.md) · [Enterprise dashboard](frontend/enterprise-dashboard.md) · [Driver and dock PWA](frontend/driver-mobile-pwa.md) · [Public trace portal (M2)](frontend/public-trace-portal.md) |
 | **Guides** | [Development setup](guides/development-setup.md) · [Engineering workflow](guides/engineering-workflow.md) · [Coding standards](guides/coding-standards.md) · [Frontend integration](guides/frontend-integration.md) |
 
 ## Sources of truth

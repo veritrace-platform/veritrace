@@ -246,6 +246,7 @@ Envelope from §2.1 with `producer = "telemetry-stream-service"` and `actor = nu
 | --- | --- |
 | Endpoint | `GET /ws/v1/notifications` (telemetry-stream-service, behind the gateway) |
 | Subprotocols | The client offers `["veritrace.v1", "bearer.<access_token>"]`; the server selects `veritrace.v1` |
+| Origin | Same origin as the frontend (through the gateway), or an origin listed in `WS_ALLOWED_ORIGINS` (cloud mode); other origins are rejected before the upgrade |
 | Authorization | Tenant and role from the token. Notifications go only to participant tenants of the affected shipment. `DRIVER` connections receive only their assigned shipments. |
 | Heartbeat | Server ping every 30 s; the connection is closed if no pong arrives within 10 s |
 | Token expiry | The server closes the connection with `4401` at token expiry; the client reconnects with a fresh token |

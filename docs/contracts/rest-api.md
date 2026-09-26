@@ -13,7 +13,8 @@ Request and response schemas live in each service's OpenAPI document, which is t
 
 | Topic | Rule |
 | --- | --- |
-| Base URL | One origin through the gateway. Local: `http://localhost:8000`. |
+| Base URL | One origin through the gateway. Local: `http://localhost:8000` for API clients; frontends reach the API on their own origin ([ADR-0021](../adr/0021-frontend-origin-and-session.md)). |
+| CORS | Not enabled. Browsers never call the API cross-origin; the WebSocket endpoint checks `Origin` against `WS_ALLOWED_ORIGINS`. |
 | Versioning | Path prefix `/api/v1`. Breaking changes require `/api/v2`. |
 | Format | `application/json; charset=utf-8`, `snake_case` fields. `null` means an explicitly empty optional field; optional fields may also be omitted. |
 | Identifiers | UUID strings. GS1 keys are strings, never numbers. |
@@ -67,8 +68,8 @@ Clients branch on `code`, never on `detail` or `title`.
 | `SSCC_SERIAL_EXHAUSTED` | 409 | The tenant's SSCC serial space is used up |
 | `INVALID_GS1_IDENTIFIER` | 422 | Length, non-numeric, check digit, or prefix mismatch (see `errors[].code`) |
 | `SSCC_MISMATCH` | 422 | Scanned SSCC differs from the shipment |
-| `OUTSIDE_GEOFENCE` | 422 | Reported position outside the facility geo-fence |
-| `PICKUP_CODE_INVALID` | 422 | Wrong code (consumes one attempt) |
+| `OUTSIDE_GEOFENCE` | 422 | Reported position outside the facility geo-fence. Extension members: `distance_meters`, `allowed_meters` |
+| `PICKUP_CODE_INVALID` | 422 | Wrong code (consumes one attempt). Extension member: `remaining_attempts` |
 | `PICKUP_CODE_EXPIRED` | 422 | No active code, or code expired |
 | `PICKUP_CODE_LOCKED` | 423 | Attempt limit reached; a new code must be issued |
 | `PAYLOAD_TOO_LARGE` | 413 | Body over the limit |
@@ -78,6 +79,10 @@ Clients branch on `code`, never on `detail` or `title`.
 | `SERVICE_UNAVAILABLE` | 503 | Dependency down or shutting down |
 
 ## 2. Gateway routing
+
+The API listener (`:8000` locally, `api.<domain>` in cloud mode) and each local frontend listener share
+the table below. On a frontend listener (dashboard `:8001`, PWA `:8002`, portal `:8003`), every path that
+is not listed goes to that frontend, including its `/bff/*` session routes.
 
 | Path prefix | Service |
 | --- | --- |
@@ -115,6 +120,7 @@ Roles and parties follow [access-control.md](../domain/access-control.md).
 | `POST` | `/api/v1/lots/{lot_id}/recall` | ADMIN | Emergency recall; returns the recall and the affected shipment count |
 | `GET` | `/api/v1/inventory` | bearer | Balances (filter: `location_id`, `lot_id`) |
 | `GET`, `POST` | `/api/v1/shipments` | bearer | List (filter: `status`, `party`, `sscc`, `lot_id`, `assigned_to_me`) or create shipments |
+| `GET` | `/api/v1/shipments/summary` | bearer | Counts of the caller's visible shipments by status: `{created, in_transit, delivered, cancelled, recalled}` |
 | `GET` | `/api/v1/shipments/{shipment_id}` | bearer | Read a shipment, including participants |
 | `POST` | `/api/v1/shipments/{shipment_id}/carrier` | bearer | Assign a carrier tenant |
 | `POST` | `/api/v1/shipments/{shipment_id}/driver` | bearer | Assign or reassign a driver |
@@ -146,6 +152,7 @@ Roles and parties follow [access-control.md](../domain/access-control.md).
 | M1 | `GET` | `/api/v1/telemetry/shipments/{sscc}/readings` | bearer | Readings in `[from, to)`. `resolution` is `raw` (max 6 h window), `1m`, or `15m`. |
 | M1 | `GET` | `/api/v1/telemetry/shipments/{sscc}/incidents` | bearer | Incidents of one shipment |
 | M1 | `GET` | `/api/v1/telemetry/incidents` | bearer | Incidents across the caller's shipments (filter: `state=open\|resolved`) |
+| M1 | `GET` | `/api/v1/telemetry/incidents/summary` | bearer | `{open_count, last_24h_count}` for the caller's shipments |
 | M1 | `GET` | `/ws/v1/notifications` | subprotocol | WebSocket ([messaging.md §6](messaging.md#6-websocket-real-time-notifications)) |
 | M2 | `GET` | `/api/v1/public/telemetry/shipments/{sscc}/summary` | public | 15-minute series and incident summary for the public timeline |
 

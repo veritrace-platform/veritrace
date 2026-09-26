@@ -1,62 +1,60 @@
 # Frontend Integration
 
-How `enterprise-dashboard`, `driver-mobile-pwa`, and `public-trace-portal` integrate with the backend.
-Framework choices inside each frontend repository belong to that repository.
+The backend contract for `enterprise-dashboard`, `driver-mobile-pwa`, and `public-trace-portal`. What each
+application does is specified in [frontend/](../frontend/README.md). The stack and session decisions are
+[ADR-0020](../adr/0020-frontend-stack.md) and [ADR-0021](../adr/0021-frontend-origin-and-session.md).
 
-## 1. Base URL and environments
+## 1. Origins and URLs
 
-| Environment | API base URL | WebSocket URL |
-| --- | --- | --- |
-| Local | `http://localhost:8000` | `ws://localhost:8000/ws/v1/notifications` |
-| Deployed | `https://api.<domain>` | `wss://api.<domain>/ws/v1/notifications` |
+Every frontend talks to the API on **its own origin**, so no CORS is involved.
 
-All REST and WebSocket traffic goes through the gateway. Frontends never call service ports directly.
+| Mode | Open the app at | REST | WebSocket |
+| --- | --- | --- | --- |
+| Local | Gateway port: dashboard `http://localhost:8001`, PWA `:8002`, portal `:8003` | `/api/v1/…` on the same origin | `ws://<origin>/ws/v1/notifications` |
+| Phone testing | `https://….trycloudflare.com` from `make tunnel TUNNEL_TARGET=http://gateway:8002` | same origin | `wss://<origin>/ws/v1/notifications` |
+| Cloud (M2, optional) | Vercel URL | Vercel rewrite to `https://api.<domain>` | `wss://api.<domain>/ws/v1/notifications` (`NEXT_PUBLIC_WS_URL`) |
 
-### Testing on a phone
+The dev servers run on the host at ports 3001 (dashboard), 3002 (PWA), and 3003 (portal). The gateway
+forwards to them. Always open the gateway port.
 
-Camera and geolocation APIs work only on HTTPS (or `localhost`). To test the PWA on a real phone:
-
-1. Run the frontend dev server with a rewrite that proxies `/api` and `/ws` to `http://localhost:8000`,
-   so there is a single origin.
-2. Run `make tunnel TUNNEL_TARGET=http://host.docker.internal:3000` in `platform-infrastructure`.
-3. Open the printed `https://….trycloudflare.com` URL on the phone. The URL changes on every run.
-
-## 2. Types from contracts
+## 2. Types and mocks
 
 - REST types are generated from each service's `api/openapi.yaml` with `openapi-typescript`. Do not
   hand-write request or response types.
-- Until an endpoint is implemented, it can be mocked from the same document (for example with Prism).
+- Endpoints not implemented yet are mocked with MSW from the same documents.
 - WebSocket message types follow [messaging.md §6](../contracts/messaging.md#6-websocket-real-time-notifications).
 
-## 3. Authentication
+## 3. Session (dashboard and PWA)
 
-1. `POST /api/v1/auth/login` returns `access_token` (15 min), `refresh_token` (30 days), and the user.
-2. Send `Authorization: Bearer <access_token>` on every call.
-3. On `401 TOKEN_EXPIRED`, call `POST /api/v1/auth/refresh` once, then retry the request.
-   - Refresh tokens rotate: always store the new one.
-   - Reusing an old refresh token revokes the whole session.
-4. **Storage recommendation:**
-   - Keep the refresh token in an `HttpOnly`, `Secure`, `SameSite=Lax` cookie owned by the frontend's own
-     server (for example a Next.js route handler, acting as a backend for the frontend).
-   - Keep the access token in memory.
-   - Never store tokens in `localStorage`.
-5. **WebSocket:** `new WebSocket(url, ["veritrace.v1", "bearer." + accessToken])`. Reconnect with a fresh
-   token when the server closes with `4401`.
+| Step | Browser | Frontend server (BFF) | Backend |
+| --- | --- | --- | --- |
+| Sign in | `POST /bff/session/login` | Calls `POST /api/v1/auth/login`; stores the refresh token in an encrypted `HttpOnly` cookie | Issues tokens |
+| Call the API | `Authorization: Bearer <access token>` on `/api/v1/…` | — | Verifies the JWT |
+| Token expired (`401 TOKEN_EXPIRED`) | `POST /bff/session/refresh` once, then retry | Calls `POST /api/v1/auth/refresh` with the cookie; rotates it | Rotates the refresh token |
+| Page reload or app resume | `POST /bff/session/refresh` | as above | as above |
+| Sign out | `POST /bff/session/logout` | Calls `POST /api/v1/auth/logout`; clears the cookie | Revokes the family |
+| WebSocket | `new WebSocket(url, ["veritrace.v1", "bearer." + accessToken])`; on close `4401`, refresh and reconnect | — | Verifies the token |
+
+The access token is held in memory only. Tokens never go to `localStorage`, `sessionStorage`, or
+non-`HttpOnly` cookies.
+
+The public portal has no session. It renders on the server with `API_BASE_URL`.
 
 ## 4. Errors
 
 Every error is `application/problem+json` with a stable `code`
 ([rest-api.md §1.1](../contracts/rest-api.md#11-errors-rfc-9457-problem-details)).
 
-- Map `code` to user-facing text in the frontend.
-- Show `trace_id` in error details to help support.
-- For form validation, use `errors[].field`.
+- Map `code` to translated text.
+- Use `errors[].field` for form fields, and the documented extension members (for example
+  `remaining_attempts`, `distance_meters`) for richer messages.
+- Show `trace_id` with a copy button for unexpected errors.
 
-## 5. Domain rules the UI must mirror
+## 5. Domain rules the UI mirrors
 
-- **GS1 validation** (length and check digit) runs client-side for instant feedback, using the shared test
-  vectors in [gs1-identifiers.md](../domain/gs1-identifiers.md#2-check-digit-gs1-modulo-10). The server
-  still validates.
-- **Pickup** requires a camera scan of the SSCC, the 6-digit code, and a position. Request
-  high-accuracy geolocation and send `accuracy_meters`.
-- **Recall:** the dashboard must show a blocking banner when a `shipment.recalled` notification arrives.
+- **GS1:** client-side validation of length, check digit, and prefix. The implementation is tested with
+  [`gs1-check-digit.json`](../contracts/test-vectors/gs1-check-digit.json). Scanned labels are normalized per
+  [gs1-identifiers.md §3.1](../domain/gs1-identifiers.md#31-sscc-on-logistic-labels).
+- **Positions:** handover actions send `{latitude, longitude, accuracy_meters}` from high-accuracy
+  geolocation.
+- **Recall:** a `shipment.recalled` notification blocks further actions on that shipment in every UI.
