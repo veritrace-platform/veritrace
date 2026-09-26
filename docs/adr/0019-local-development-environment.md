@@ -10,15 +10,16 @@ command. The frontend developer should not need a Go toolchain to get a working 
 
 ## Decision
 
-- `platform-infrastructure/compose.yaml` defines the environment with **pinned image versions**:
+- `platform-infrastructure/compose.yaml` defines the environment. Every image is pinned to an exact tag
+  there, and Dependabot proposes upgrades as pull requests, so this document does not repeat the tags:
 
   | Component | Image |
   | --- | --- |
-  | PostgreSQL 18 + TimescaleDB | `timescale/timescaledb:2.30.1-pg18` |
-  | Kafka (KRaft, single node) | `apache/kafka:4.3.1` |
-  | Mosquitto | `eclipse-mosquitto:2.0.22` |
-  | Redis | `redis:8.8.3-alpine` |
-  | Gateway | `caddy:2.11.4-alpine` |
+  | PostgreSQL 18 + TimescaleDB | `timescale/timescaledb` (`-pg18` variant) |
+  | Kafka (KRaft, single node) | `apache/kafka` (4.x) |
+  | Mosquitto | `eclipse-mosquitto` (2.x) |
+  | Redis | `redis` (alpine) |
+  | Gateway | `caddy` (alpine) |
 
 - **Compose profiles:**
 

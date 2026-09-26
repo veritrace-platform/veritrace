@@ -19,7 +19,7 @@ tooling rely on this layout. Clone the project home first, then let it fetch the
 ```bash
 mkdir veritrace-platform && cd veritrace-platform
 git clone https://github.com/veritrace-platform/veritrace.git
-make -C veritrace workspace           # clones every missing repository next to it
+make -C veritrace workspace           # clones every missing repository next to it, on develop
 make -C veritrace status              # branch and pending changes of every repository
 ```
 

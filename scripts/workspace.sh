@@ -31,7 +31,8 @@ clone() {
       continue
     fi
     printf '%-28s cloning\n' "$repo"
-    git clone --quiet "$git_base/$repo.git" "$workspace/$repo"
+    # Development happens on develop; main (the default branch) only holds releases.
+    git clone --quiet --branch develop "$git_base/$repo.git" "$workspace/$repo"
   done
 }
 
