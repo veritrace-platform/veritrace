@@ -25,5 +25,8 @@ to `Superseded by ADR-XXXX`.
 | [0017](0017-observability.md) | Observability | M1 + M2 |
 | [0018](0018-deployment-topology.md) | Deployment topology and cost | M1 + M2 |
 | [0019](0019-local-development-environment.md) | Local development environment | M1 |
+| [0020](0020-frontend-stack.md) | Frontend stack | M1 + M2 |
+| [0021](0021-frontend-origin-and-session.md) | Frontend origin and session handling | M1 + M2 |
+| [0022](0022-driver-pwa-device-capabilities.md) | Driver PWA device capabilities | M1 |
 
 New ADRs start from [the template](template.md). All ADRs above are `Accepted` unless marked otherwise.
