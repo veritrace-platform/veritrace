@@ -81,18 +81,15 @@ for entry in "${repos[@]}"; do
   run gh api -X PUT "repos/${org}/${repo}/private-vulnerability-reporting"
 
   if $apply; then
-    if gh api "repos/${org}/${repo}/branches/develop" >/dev/null 2>&1; then
-      gh api -X PATCH "repos/${org}/${repo}" -f default_branch=develop >/dev/null
-    else
-      echo "  skip default branch: develop does not exist yet"
-    fi
+    # Visitors see released code; work pull requests target develop explicitly.
+    gh api -X PATCH "repos/${org}/${repo}" -f default_branch=main >/dev/null
     if gh api "repos/${org}/${repo}/rulesets" --jq '.[].name' | grep -qx protect-main-and-develop; then
       echo "  ruleset already present"
     else
       ruleset_json | gh api -X POST "repos/${org}/${repo}/rulesets" --input - >/dev/null
     fi
   else
-    printf '  would set default branch to develop (if it exists) and create ruleset protect-main-and-develop\n'
+    printf '  would set default branch to main and create ruleset protect-main-and-develop\n'
   fi
 done
 

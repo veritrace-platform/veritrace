@@ -10,8 +10,8 @@
 **Status values:** `TODO` · `IN_PROGRESS` · `BLOCKED` · `DONE`. A story is `DONE` when it meets the
 [Definition of Done](guides/engineering-workflow.md#4-definition-of-done).
 
-**Owners:** **BE** means backend and platform; **FE** means frontend. The story IDs are used in branch
-names and commit footers.
+**Owners:** **BE** means backend and platform; **FE** means frontend. Story IDs identify work in this
+document; they are not required in branch names, commits, or pull requests.
 
 ---
 
