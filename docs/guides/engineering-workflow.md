@@ -4,14 +4,17 @@
 
 | Branch | Purpose | Merges from |
 | --- | --- | --- |
-| `main` | Released code only. Every release merge on `main` is tagged. | `develop` (release PR, merge commit) |
+| `main` | Released code only; the default branch visitors see | `develop` (release PR, merge commit) |
 | `develop` | Integration branch; always builds and passes CI | Work branches |
-| `feat/<id>-<slug>` | New behavior, for example `feat/scm-ep1-us03-tenant-isolation` | — |
+| `feat/<slug>` | New behavior, for example `feat/tenant-isolation` | — |
 | `fix/<slug>` | Bug fix | — |
 | `docs/<slug>`, `chore/<slug>`, `refactor/<slug>`, `test/<slug>`, `ci/<slug>` | Non-functional changes | — |
 
 - Work branches start from `develop` and return to it through a pull request.
-- `main` and `develop` are protected: no direct pushes, and CI must pass.
+- `main` and `develop` are protected: changes arrive only through pull requests, and CI must be green
+  before merging.
+- `main` is the default branch, so GitHub proposes `main` as the base of a new pull request. **Work
+  pull requests must target `develop` explicitly** (in the UI, or with `gh pr create --base develop`).
 
 ## 2. Commits
 
@@ -22,7 +25,7 @@ The format is [Conventional Commits](https://www.conventionalcommits.org/):
 
 <optional body: what and why, wrapped at 72>
 
-<optional footer: Refs: SCM-EP2-US05 / BREAKING CHANGE: …>
+<optional footer: BREAKING CHANGE: …>
 ```
 
 - **Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `build`, `perf`.
@@ -32,15 +35,14 @@ The format is [Conventional Commits](https://www.conventionalcommits.org/):
 
 ## 3. Pull requests
 
-- Keep each pull request to one story, or one coherent slice of a story. It should be reviewable in about
-  30 minutes.
-- The description states what changed, how it was verified, and which story it references (template
-  provided organization-wide).
+- Keep each pull request to one coherent change. It should be reviewable in about 30 minutes.
+- The title is required and follows the commit format. The description is optional; add one when the
+  change needs context that the title and commits do not give.
 - **Work pull requests** (work branch → `develop`) are merged by **squash**. The pull request title
   becomes the commit message, so the title follows the commit format.
 - **Release pull requests** (`develop` → `main`) are merged with a **merge commit**, never squash or
-  rebase. This keeps `main` an ancestor of `develop`, so later releases merge without conflicts. The
-  release is then tagged on `main`.
+  rebase. The history of `develop` then stays contained in `main`, so later releases merge without
+  conflicts.
 - Multi-commit bootstrap branches that are already curated (for example an initial setup) may also be
   merged into `develop` with a merge commit, to keep their individual commits.
 - A change that touches a contract (migration, OpenAPI, messaging document, ADR) updates it in the same
@@ -80,7 +82,7 @@ both branches exist:
 
 | Setting | Value |
 | --- | --- |
-| Default branch | `develop` |
+| Default branch | `main` (what visitors see); work targets `develop` |
 | Merge button | Squash (work PRs, title as the commit message) and merge commits (release PRs); rebase merging disabled |
 | Branches | Delete head branches after merge |
 | Protection on `main` and `develop` | Require a pull request, require the CI status checks to pass, block force pushes and deletion |
@@ -89,8 +91,7 @@ both branches exist:
 
 ## 7. Releases and versioning
 
-- Each repository follows [Semantic Versioning](https://semver.org/). Tags are `vMAJOR.MINOR.PATCH` on
-  `main`.
-- Development before the first release uses `0.y.z`. Completion of **M1 — Operational Core** is released
-  as `v1.0.0` in each participating repository.
-- Release notes are published as GitHub Releases and grouped by commit type.
+- A release is a pull request from `develop` to `main`, merged with a merge commit.
+- Versions follow [Semantic Versioning](https://semver.org/). Tags are created for milestone releases:
+  `v1.0.0` for **M1 — Operational Core** and `v2.0.0` for **M2 — Decentralized Trust**. Intermediate
+  releases do not need tags.
