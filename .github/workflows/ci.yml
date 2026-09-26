@@ -15,7 +15,7 @@ concurrency:
 jobs:
   docs:
     name: Documentation and scripts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - name: Links and anchors
