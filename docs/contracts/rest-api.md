@@ -124,8 +124,8 @@ Roles and parties follow [access-control.md](../domain/access-control.md).
 | `GET` | `/.well-known/jwks.json` | public | Token verification keys |
 | `GET` | `/api/v1/me` | bearer | Current user and tenant summary |
 | `POST` | `/api/v1/me/password` | bearer | Change own password (revokes other sessions) |
-| `GET`, `PATCH` | `/api/v1/tenant` | bearer | Read or update own tenant profile |
-| `GET`, `POST` | `/api/v1/users` | ADMIN | List (filter: `role`, `is_active`) or create users |
+| `GET`, `PATCH` | `/api/v1/tenant` | ADMIN | Read or update own tenant profile |
+| `GET`, `POST` | `/api/v1/users` | ADMIN | List (filter: `role`, `is_active`) or create users. WAREHOUSE_MANAGER may list with `role=DRIVER`. |
 | `GET`, `PATCH` | `/api/v1/users/{user_id}` | ADMIN | Read or update a user (name, phone, role, `is_active`) |
 | `GET` | `/api/v1/directory/locations/{gln}` | bearer | Resolve any tenant's GLN to its public fields |
 | `GET` | `/api/v1/directory/tenants/{code}` | bearer | Resolve a tenant code (carrier or inspector selection) |
