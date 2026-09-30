@@ -38,6 +38,12 @@ forwards to them. Always open the gateway port.
 The access token is held in memory only. Tokens never go to `localStorage`, `sessionStorage`, or
 non-`HttpOnly` cookies.
 
+Login and refresh return the same `Session` body: `access_token` with `expires_in` (seconds), the new
+`refresh_token` with `refresh_token_expires_in` (the cookie's `Max-Age`), and `user`, the same object as
+`GET /api/v1/me`. When the BFF calls login, refresh, and logout, it forwards the browser's address in
+`X-Forwarded-For` and the browser's `User-Agent`, so rate limits and session records describe the browser
+rather than the frontend server.
+
 The public portal has no session. It renders on the server with `API_BASE_URL`.
 
 ## 4. Errors

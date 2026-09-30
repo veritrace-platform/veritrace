@@ -27,7 +27,7 @@ Request and response schemas live in each service's OpenAPI document, which is t
 | Partial update | `PATCH` with a JSON merge patch (RFC 7396) of the mutable fields |
 | Tracing | Clients may send `traceparent`. Every response carries `X-Trace-Id`. |
 | Limits | JSON bodies up to 1 MiB. Document uploads up to 25 MiB (M2). |
-| Rate limits | Login and registration: 10/min per IP. Public endpoints: 60/min per IP. `429` responses include `Retry-After`. |
+| Rate limits | Login and registration: 10/min per IP. Public endpoints: 60/min per IP. `429` responses include `Retry-After`. The client address is read from `X-Forwarded-For` behind the proxies listed in `TRUSTED_PROXIES` (the gateway and the frontend servers). |
 
 ### 1.1 Errors (RFC 9457 Problem Details)
 
