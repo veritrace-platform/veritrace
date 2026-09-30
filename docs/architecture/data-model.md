@@ -309,8 +309,42 @@ Indexes: `(owner_tenant_id, created_at)`, `(lot_id)`, `(status)`, `(assigned_dri
 | `core.recall_lot(lot_id, reason, user_id)` | recall | recall ID, affected shipments (runs across tenants) |
 | `core.public_*` (M2) | public trace API | public projections only |
 
-Every such function sets `search_path` explicitly. `EXECUTE` is revoked from `PUBLIC` and granted to the
-runtime role only.
+Every such function:
+
+- is owned by the owner role and declared `SECURITY DEFINER` with `SET search_path = pg_catalog, pg_temp`;
+- schema-qualifies every object it uses (`core.tenants`). Functions written in SQL use a SQL-standard body
+  (`RETURN …` or `BEGIN ATOMIC … END`), which resolves those references when the function is created;
+- has `EXECUTE` revoked from `PUBLIC` and granted to the runtime role only;
+- returns only the fields listed above and runs no dynamic SQL;
+- has dedicated isolation tests.
+
+### 3.6 Row-level security policies
+
+Every table marked with RLS above enables row-level security in the migration that creates it, together
+with its policies:
+
+- Policies apply `TO veritrace_core_app`. Any other role has no policy and sees nothing.
+- Policies read the tenant context as `(SELECT core.current_tenant_id())`. The scalar subquery runs once
+  per query, whereas a bare call would run once per row.
+- A policy is named after its rule, for example `tenant_isolation`.
+- Tables do not use `FORCE ROW LEVEL SECURITY`. The owner role owns every table and bypasses the policies,
+  which lets migrations and the functions in §3.5 work across tenants without recursive policy checks.
+- Views set `security_invoker = true`, so they apply the policies of the tables they read. The `core`
+  schema has no materialized views, because they cannot carry policies.
+
+A tenant-scoped table (RLS: tenant) uses this policy:
+
+```sql
+ALTER TABLE core.locations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON core.locations
+    TO veritrace_core_app
+    USING (tenant_id = (SELECT core.current_tenant_id()))
+    WITH CHECK (tenant_id = (SELECT core.current_tenant_id()));
+```
+
+The core service's schema conventions test checks every migration for row-level security on each table,
+policy roles, the `(SELECT …)` form, views, the ownership, grants, and `search_path` of §3.5 functions, and
+the DML-only grants of the runtime role, so a migration that breaks one of these fails CI.
 
 ---
 
