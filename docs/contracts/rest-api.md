@@ -78,6 +78,24 @@ Clients branch on `code`, never on `detail` or `title`.
 | `INTERNAL_ERROR` | 500 | Unexpected failure (details only in logs, correlated by `trace_id`) |
 | `SERVICE_UNAVAILABLE` | 503 | Dependency down or shutting down |
 
+Each entry of `errors[]` has its own `code`:
+
+| Field code | Meaning |
+| --- | --- |
+| `REQUIRED` | Missing or empty |
+| `INVALID_FORMAT` | Does not match the expected format (pattern, email address, phone number) |
+| `INVALID_TYPE` | Wrong JSON type |
+| `INVALID_VALUE` | Not one of the allowed values |
+| `TOO_SHORT`, `TOO_LONG` | Length outside the limits |
+| `OUT_OF_RANGE` | Number outside the limits |
+| `UNKNOWN_FIELD` | Not part of the request schema |
+| `ALREADY_REGISTERED` | A unique value that another record holds (with `409 IDENTIFIER_ALREADY_REGISTERED`) |
+| `INCORRECT` | Does not match the stored value, such as the current password |
+| `LENGTH`, `NON_NUMERIC`, `CHECK_DIGIT`, `PREFIX_MISMATCH` | GS1 key errors ([gs1-identifiers.md](../domain/gs1-identifiers.md#validation-rules)) |
+
+`422 INVALID_GS1_IDENTIFIER` is returned when only GS1 keys are invalid. When other fields are invalid too,
+`400 VALIDATION_FAILED` lists every error, GS1 keys included. Text fields are trimmed; passwords are not.
+
 ## 2. Gateway routing
 
 The API listener (`:8000` locally, `api.<domain>` in cloud mode) and each local frontend listener share

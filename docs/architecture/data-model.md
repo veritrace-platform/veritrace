@@ -16,6 +16,7 @@ the executable source of truth. A pull request that changes one must change the 
 | Enumerations | `text` with a `CHECK` constraint. Values are `UPPER_SNAKE_CASE`. |
 | Constraint names | `<table>_<columns>_key` (unique), `<table>_<column>_fkey`, `<table>_<rule>_check`, `idx_<table>_<columns>` |
 | Audit columns | `created_at` on every table. `updated_at` on mutable tables, maintained by a trigger. |
+| Tenant consistency | Tenant-scoped tables have a unique `(tenant_id, id)` key. A reference to a row that must belong to the same tenant is a composite foreign key on `(tenant_id, <entity>_id)`, so it cannot cross tenants. |
 
 ## 2. Database roles
 
@@ -37,7 +38,7 @@ creates the roles and databases. Migrations create everything else.
 
 ### 3.1 Tenancy and identity (M1)
 
-**`tenants`** (RLS: the caller's own row only)
+**`tenants`** (RLS: the caller's own row only; created only by `core.register_tenant`, never deleted)
 
 | Column | Type | Constraints |
 | --- | --- | --- |
@@ -51,7 +52,7 @@ creates the roles and databases. Migrations create everything else.
 | `status` | text | `ACTIVE`, `SUSPENDED` |
 | `created_at`, `updated_at` | timestamptz | |
 
-**`users`** (RLS: tenant)
+**`users`** (RLS: tenant; deactivated, never deleted)
 
 | Column | Type | Constraints |
 | --- | --- | --- |
@@ -81,7 +82,7 @@ creates the roles and databases. Migrations create everything else.
 
 ### 3.2 Catalog and inventory (M1)
 
-**`locations`** (RLS: tenant)
+**`locations`** (RLS: tenant; deactivated, never deleted)
 
 | Column | Type | Constraints |
 | --- | --- | --- |
@@ -301,7 +302,7 @@ Indexes: `(owner_tenant_id, created_at)`, `(lot_id)`, `(status)`, `(assigned_dri
 | `core.current_tenant_id()` | every RLS policy | the tenant from `app.current_tenant_id`, or `NULL` (fail closed) |
 | `core.is_shipment_participant(shipment_id)` | shipment RLS policies | boolean |
 | `core.is_lot_visible(lot_id)` | lot RLS policy | boolean |
-| `core.register_tenant(...)` | registration | new tenant, admin user, and headquarters IDs |
+| `core.register_tenant(...)` | registration | new tenant, headquarters, and admin IDs, and the creation time. Registrations run one at a time, and a company prefix that equals, extends, or is extended by a registered one is rejected. |
 | `core.find_login_user(email)` | login | user ID, tenant ID, password hash, role, active flag |
 | `core.find_auth_session(token_hash)` | token refresh | session and user, for rotation |
 | `core.lookup_location_by_gln(gln)` | GLN directory | public location fields and owner tenant |

@@ -30,6 +30,10 @@
 
 Every random value comes from `crypto/rand`. Secret comparisons use constant-time functions.
 
+Passwords have 12 to 128 characters (OWASP ASVS 2.1.1 and 2.1.2). Any characters are allowed and nothing is
+trimmed. A hash made with older Argon2id parameters is replaced at the next successful login. The service
+runs at most four hashes at a time, because each one holds 19 MiB.
+
 ## 3. Secrets handling
 
 - Secrets are read only from the environment, or from files referenced by it in deployment. They are
