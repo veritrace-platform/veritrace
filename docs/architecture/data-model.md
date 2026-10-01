@@ -100,7 +100,7 @@ creates the roles and databases. Migrations create everything else.
 | `is_active` | boolean | default true |
 | `created_at`, `updated_at` | timestamptz | |
 
-**`products`** (RLS: tenant)
+**`products`** (RLS: tenant; deactivated, never deleted)
 
 | Column | Type | Constraints |
 | --- | --- | --- |
@@ -108,7 +108,7 @@ creates the roles and databases. Migrations create everything else.
 | `tenant_id` | uuid | FK |
 | `gtin` | char(14) | globally unique; valid; tenant GCP at position 2 |
 | `name` | text | |
-| `description` | text | nullable |
+| `description` | text | nullable; 1–1000 characters |
 | `min_temp_celsius`, `max_temp_celsius` | numeric(5,2) | −50…80; min < max |
 | `is_active` | boolean | default true |
 | `created_at`, `updated_at` | timestamptz | |

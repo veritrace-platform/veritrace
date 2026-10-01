@@ -131,7 +131,7 @@ Roles and parties follow [access-control.md](../domain/access-control.md).
 | `GET` | `/api/v1/directory/tenants/{code}` | bearer | Resolve a tenant code (carrier or inspector selection) |
 | `GET`, `POST` | `/api/v1/locations` | bearer | List (filter: `is_active`) or create locations |
 | `GET`, `PATCH` | `/api/v1/locations/{location_id}` | bearer | Read or update a location |
-| `GET`, `POST` | `/api/v1/products` | bearer | List (filter: `q`, `is_active`) or create products |
+| `GET`, `POST` | `/api/v1/products` | bearer | List (filter: `q` on name or GTIN, `is_active`) or create products |
 | `GET`, `PATCH` | `/api/v1/products/{product_id}` | bearer | Read or update a product |
 | `GET`, `POST` | `/api/v1/lots` | bearer | List (filter: `product_id`, `status`) or commission lots |
 | `GET` | `/api/v1/lots/{lot_id}` | bearer | Read a lot |

@@ -48,7 +48,7 @@ scenario script doubles as the M1 acceptance run.
 | --- | --- | --- | --- | --- |
 | SCM-EP2-US01 | GS1 library: Modulo 10, key validation with prefix ownership, SSCC issuance | core-business-service | BE | DONE |
 | SCM-EP2-US02 | Location catalog (GLN, geo-fence) and GLN/tenant directory lookups | core-business-service | BE | DONE |
-| SCM-EP2-US03 | Product catalog (GTIN-14, temperature bounds) | core-business-service | BE | TODO |
+| SCM-EP2-US03 | Product catalog (GTIN-14, temperature bounds) | core-business-service | BE | DONE |
 | SCM-EP2-US04 | Lot commissioning and inventory ledger (balances, movements) | core-business-service | BE | TODO |
 | SCM-EP2-US05 | Shipment event log (RFC 8785, hash chain), outbox relay to `shipment.events`, integrity endpoint | core-business-service | BE | TODO |
 | SCM-EP2-US06 | Shipment creation (SSCC, participants, snapshots, allocation), carrier and driver assignment, cancellation | core-business-service | BE | TODO |
