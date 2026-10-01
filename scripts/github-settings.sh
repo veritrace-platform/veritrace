@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Applies the organization's repository settings (docs/guides/engineering-workflow.md §6) with the GitHub CLI:
-# description, homepage, topics, merge options, default branch, security features, and a branch ruleset.
+# Applies the repository settings of the backend, platform, and documentation repositories
+# (docs/guides/engineering-workflow.md §4) with the GitHub CLI: description, homepage, topics, merge options,
+# default branch, security features, and a branch ruleset. The frontend repositories are configured by their
+# owner and are not listed.
 #
 # Usage:
 #   scripts/github-settings.sh            print what would change (dry run)
@@ -24,9 +26,6 @@ repos=(
   "telemetry-stream-service|VeriTrace telemetry service in Go: MQTT ingestion, Kafka streaming, TimescaleDB storage, cold-chain breach detection, and WebSocket notifications.|golang,mqtt,kafka,timescaledb,websocket,cold-chain,iot"
   "blockchain-relayer-service|VeriTrace gasless relayer in Go: Merkle batching of event hashes, nonce-safe Polygon commits, chain indexing, and inclusion proofs.|golang,blockchain,polygon,merkle-tree,redis"
   "smart-contracts|VeriTrace on-chain commitment contract for Merkle roots (Solidity, Foundry, OpenZeppelin, Polygon Amoy).|solidity,foundry,polygon,smart-contracts,merkle-tree"
-  "enterprise-dashboard|VeriTrace management web application for tenants, catalogs, shipments, recalls, and live cold-chain monitoring.|dashboard,frontend,gs1"
-  "driver-mobile-pwa|VeriTrace driver progressive web app: SSCC scanning, custody handover with pickup codes, and cold-chain alerts.|pwa,frontend,barcode-scanner"
-  "public-trace-portal|VeriTrace public portal: GS1 Digital Link label verification, provenance timeline, and on-chain proofs.|gs1-digital-link,frontend,verification"
   ".github|VeriTrace organization profile and shared community health files.|"
 )
 

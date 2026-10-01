@@ -1,54 +1,20 @@
 # Engineering Workflow
 
-## 1. Branches
+VeriTrace is built by a small team: one developer owns the backend, platform, and documentation
+repositories, and one owns the three frontend repositories. The workflow stays light so the effort goes into
+the product. The frontend repositories follow their owner's workflow.
 
-| Branch | Purpose | Merges from |
-| --- | --- | --- |
-| `main` | Released code only; the default branch visitors see | `develop` (release PR, merge commit) |
-| `develop` | Integration branch; always builds and passes CI | Work branches |
-| `feat/<slug>` | New behavior, for example `feat/tenant-isolation` | — |
-| `fix/<slug>` | Bug fix | — |
-| `docs/<slug>`, `chore/<slug>`, `refactor/<slug>`, `test/<slug>`, `ci/<slug>` | Non-functional changes | — |
+## 1. Branches and pull requests
 
-- Work branches start from `develop` and return to it through a pull request.
-- `main` and `develop` are protected: changes arrive only through pull requests, and CI must be green
-  before merging.
-- `main` is the default branch, so GitHub proposes `main` as the base of a new pull request. **Work
-  pull requests must target `develop` explicitly** (in the UI, or with `gh pr create --base develop`).
+- `develop` collects finished work. `main` receives a release when the team decides to make one.
+- Work happens on a branch from `develop`, for example `feat/tenant-isolation`, and returns through a pull
+  request. GitHub proposes `main` as the base, so pick `develop` (`gh pr create --base develop`).
+- Merge when CI is green. Squash and merge commits are both fine: a merge commit keeps a branch's commits
+  when they are already tidy, and squash suits branches full of throwaway commits.
+- Commit messages and pull request titles follow [Conventional Commits](https://www.conventionalcommits.org/),
+  for example `feat(auth): rotate refresh tokens`.
 
-## 2. Commits
-
-The format is [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-<type>(<scope>): <imperative summary, lower case, no period, ≤ 72 chars>
-
-<optional body: what and why, wrapped at 72>
-
-<optional footer: BREAKING CHANGE: …>
-```
-
-- **Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `build`, `perf`.
-- **Scopes:** a domain or area of the repository, such as `auth`, `tenancy`, `gs1`, `shipments`,
-  `handover`, `recall`, `ingest`, `detector`, `ws`, `relayer`, `compose`, `docs`.
-- One logical change per commit, and the build passes at every commit.
-
-## 3. Pull requests
-
-- Keep each pull request to one coherent change. It should be reviewable in about 30 minutes.
-- The title is required and follows the commit format. The description is optional; add one when the
-  change needs context that the title and commits do not give.
-- **Work pull requests** (work branch → `develop`) are merged by **squash**. The pull request title
-  becomes the commit message, so the title follows the commit format.
-- **Release pull requests** (`develop` → `main`) are merged with a **merge commit**, never squash or
-  rebase. The history of `develop` then stays contained in `main`, so later releases merge without
-  conflicts.
-- Multi-commit bootstrap branches that are already curated (for example an initial setup) may also be
-  merged into `develop` with a merge commit, to keep their individual commits.
-- A change that touches a contract (migration, OpenAPI, messaging document, ADR) updates it in the same
-  pull request. A cross-repository contract change links the counterpart pull request.
-
-## 4. Definition of Done
+## 2. Definition of Done
 
 A story is done when all of the following hold:
 
@@ -61,9 +27,10 @@ A story is done when all of the following hold:
    - no secrets in code or logs;
    - tenant isolation goes through the transaction helper;
    - authorization goes through the policy.
-5. **Docs:** contracts, ADRs (if a decision changed), and the [roadmap](../roadmap.md) status are updated.
+5. **Docs:** contracts (migrations, OpenAPI, messaging), ADRs (if a decision changed), and the
+   [roadmap](../roadmap.md) status change together with the code.
 
-## 5. Shared code across service repositories
+## 3. Shared code across service repositories
 
 - The Go platform packages (`internal/platform/…`, `internal/httpapi`) are duplicated on purpose in each
   service repository. There is no shared module to version.
@@ -73,25 +40,16 @@ A story is done when all of the following hold:
   in `veritrace/docs/contracts/test-vectors/`. Each service copies what it uses into its
   own `testdata/` and must not modify the copy.
 
-## 6. Repository settings (GitHub)
+## 4. Repository settings
 
-Every repository uses the same settings. They are declared in `scripts/github-settings.sh` in this
-repository (description, homepage, topics, merge options, default branch, security features, and a
-ruleset protecting `main` and `develop`), and applied with `scripts/github-settings.sh --apply` once
-both branches exist:
+`scripts/github-settings.sh` in this repository keeps the backend, platform, and documentation repositories
+alike: description, topics, merge options, `main` as the default branch, security features, and a ruleset
+that accepts changes to `main` and `develop` only through pull requests. Preview it with
+`make github-settings` and apply it with `scripts/github-settings.sh --apply`.
 
-| Setting | Value |
-| --- | --- |
-| Default branch | `main` (what visitors see); work targets `develop` |
-| Merge button | Squash (work PRs, title as the commit message) and merge commits (release PRs); rebase merging disabled |
-| Branches | Delete head branches after merge |
-| Protection on `main` and `develop` | Require a pull request, require the CI status checks to pass, block force pushes and deletion |
-| Security | Enable Dependabot alerts and security updates, secret scanning, and private vulnerability reporting |
-| Actions | Allow GitHub-authored and verified actions; workflow permissions read-only by default |
+## 5. Releases
 
-## 7. Releases and versioning
-
-- A release is a pull request from `develop` to `main`, merged with a merge commit.
-- Versions follow [Semantic Versioning](https://semver.org/). Tags are created for milestone releases:
-  `v1.0.0` for **M1 — Operational Core** and `v2.0.0` for **M2 — Decentralized Trust**. Intermediate
-  releases do not need tags.
+- A release merges `develop` into `main` with a merge commit, so `main` keeps the history of `develop` and
+  later releases merge without conflicts.
+- Milestone releases are tagged: `v1.0.0` for **M1 — Operational Core** and `v2.0.0` for
+  **M2 — Decentralized Trust**.
