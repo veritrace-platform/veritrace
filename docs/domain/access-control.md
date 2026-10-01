@@ -24,7 +24,9 @@ A user belongs to exactly one tenant and has exactly one role.
 ## 2. Policy matrix
 
 Party is the caller tenant's relationship to the resource. The `lot OWNER` is the tenant that commissioned
-the lot, and a `lot holder` is a tenant with a non-zero balance of the lot.
+the lot, and a `lot holder` is a tenant that has or had a balance of the lot
+([ADR-0002](../adr/0002-multi-party-tenancy-with-row-level-security.md)). Shipping still needs a sufficient
+balance at the origin.
 
 ### M1
 

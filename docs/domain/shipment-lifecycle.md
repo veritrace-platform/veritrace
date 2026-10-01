@@ -15,11 +15,11 @@ if it holds stock of that lot, which it gets by receiving an earlier shipment.
 
 ## 2. Commissioning a lot
 
-1. A warehouse manager or admin creates a lot for one of the tenant's products. They supply the lot
+1. A warehouse manager or admin creates a lot for one of the tenant's active products. They supply the lot
    number, production date, expiration date (not earlier than the production date), quantity produced,
-   and the location where the goods were produced or stored.
-2. The lot starts `ACTIVE`. The location's balance for the lot increases by the quantity, and a
-   `COMMISSIONED` inventory movement is recorded.
+   and the active location where the goods were produced or stored.
+2. The lot starts `ACTIVE` and copies the product's GTIN, name, and temperature bounds. The location's
+   balance for the lot increases by the quantity, and a `COMMISSIONED` inventory movement is recorded.
 3. `(product, lot number)` is unique.
 
 ## 3. Shipment state machine

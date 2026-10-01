@@ -136,7 +136,7 @@ Roles and parties follow [access-control.md](../domain/access-control.md).
 | `GET`, `POST` | `/api/v1/lots` | bearer | List (filter: `product_id`, `status`) or commission lots |
 | `GET` | `/api/v1/lots/{lot_id}` | bearer | Read a lot |
 | `POST` | `/api/v1/lots/{lot_id}/recall` | ADMIN | Emergency recall; returns the recall and the affected shipment count |
-| `GET` | `/api/v1/inventory` | bearer | Balances (filter: `location_id`, `lot_id`) |
+| `GET` | `/api/v1/inventory` | bearer | Balances above zero (filter: `location_id`, `lot_id`) |
 | `GET`, `POST` | `/api/v1/shipments` | bearer | List (filter: `status`, `party`, `sscc`, `lot_id`, `assigned_to_me`) or create shipments |
 | `GET` | `/api/v1/shipments/summary` | bearer | Counts of the caller's visible shipments by status: `{created, in_transit, delivered, cancelled, recalled}` |
 | `GET` | `/api/v1/shipments/{shipment_id}` | bearer | Read a shipment, including participants |
