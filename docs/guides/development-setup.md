@@ -40,12 +40,12 @@ veritrace-platform/
 
 ```bash
 cd platform-infrastructure
-cp .env.example .env        # adjust passwords if you like
-make up                     # PostgreSQL, Kafka (+ topics), Mosquitto, Redis, gateway
+make up                     # creates .env on the first run; PostgreSQL, Kafka (+ topics), Mosquitto, Redis, gateway
 make ps                     # everything should be healthy
 ```
 
-`make help` lists all targets. `make reset` deletes all volumes, so local data is lost.
+`make help` lists all targets. `make reset` deletes all volumes, so local data is lost. When
+`.env.example` gains variables, `make up` adds them to `.env` and keeps the values you changed.
 
 ## 3. Ports
 
@@ -70,7 +70,7 @@ Host ports are defaults. If a port is taken, override it in `platform-infrastruc
 
 ```bash
 cd core-business-service
-cp .env.example .env
+cp .env.example .env        # includes a development-only JWT signing key
 make migrate-up             # applies migrations as the owner role
 make run                    # serves on :8080, admin on :8081
 make test                   # unit tests

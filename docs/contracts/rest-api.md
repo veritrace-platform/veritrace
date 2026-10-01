@@ -27,7 +27,7 @@ Request and response schemas live in each service's OpenAPI document, which is t
 | Partial update | `PATCH` with a JSON merge patch (RFC 7396) of the mutable fields |
 | Tracing | Clients may send `traceparent`. Every response carries `X-Trace-Id`. |
 | Limits | JSON bodies up to 1 MiB. Document uploads up to 25 MiB (M2). |
-| Rate limits | Login and registration: 10/min per IP. Public endpoints: 60/min per IP. `429` responses include `Retry-After`. |
+| Rate limits | Login and registration: 10/min per IP. Public endpoints: 60/min per IP. `429` responses include `Retry-After`. The client address is read from `X-Forwarded-For` behind the proxies listed in `TRUSTED_PROXIES` (the gateway and the frontend servers). |
 
 ### 1.1 Errors (RFC 9457 Problem Details)
 
@@ -78,6 +78,24 @@ Clients branch on `code`, never on `detail` or `title`.
 | `INTERNAL_ERROR` | 500 | Unexpected failure (details only in logs, correlated by `trace_id`) |
 | `SERVICE_UNAVAILABLE` | 503 | Dependency down or shutting down |
 
+Each entry of `errors[]` has its own `code`:
+
+| Field code | Meaning |
+| --- | --- |
+| `REQUIRED` | Missing or empty |
+| `INVALID_FORMAT` | Does not match the expected format (pattern, email address, phone number) |
+| `INVALID_TYPE` | Wrong JSON type |
+| `INVALID_VALUE` | Not one of the allowed values |
+| `TOO_SHORT`, `TOO_LONG` | Length outside the limits |
+| `OUT_OF_RANGE` | Number outside the limits |
+| `UNKNOWN_FIELD` | Not part of the request schema |
+| `ALREADY_REGISTERED` | A unique value that another record holds (with `409 IDENTIFIER_ALREADY_REGISTERED`) |
+| `INCORRECT` | Does not match the stored value, such as the current password |
+| `LENGTH`, `NON_NUMERIC`, `CHECK_DIGIT`, `PREFIX_MISMATCH` | GS1 key errors ([gs1-identifiers.md](../domain/gs1-identifiers.md#validation-rules)) |
+
+`422 INVALID_GS1_IDENTIFIER` is returned when only GS1 keys are invalid. When other fields are invalid too,
+`400 VALIDATION_FAILED` lists every error, GS1 keys included. Text fields are trimmed; passwords are not.
+
 ## 2. Gateway routing
 
 The API listener (`:8000` locally, `api.<domain>` in cloud mode) and each local frontend listener share
@@ -106,8 +124,8 @@ Roles and parties follow [access-control.md](../domain/access-control.md).
 | `GET` | `/.well-known/jwks.json` | public | Token verification keys |
 | `GET` | `/api/v1/me` | bearer | Current user and tenant summary |
 | `POST` | `/api/v1/me/password` | bearer | Change own password (revokes other sessions) |
-| `GET`, `PATCH` | `/api/v1/tenant` | bearer | Read or update own tenant profile |
-| `GET`, `POST` | `/api/v1/users` | ADMIN | List (filter: `role`, `is_active`) or create users |
+| `GET`, `PATCH` | `/api/v1/tenant` | ADMIN | Read or update own tenant profile |
+| `GET`, `POST` | `/api/v1/users` | ADMIN | List (filter: `role`, `is_active`) or create users. WAREHOUSE_MANAGER may list with `role=DRIVER`. |
 | `GET`, `PATCH` | `/api/v1/users/{user_id}` | ADMIN | Read or update a user (name, phone, role, `is_active`) |
 | `GET` | `/api/v1/directory/locations/{gln}` | bearer | Resolve any tenant's GLN to its public fields |
 | `GET` | `/api/v1/directory/tenants/{code}` | bearer | Resolve a tenant code (carrier or inspector selection) |

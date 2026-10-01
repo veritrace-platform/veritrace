@@ -31,7 +31,8 @@ the lot, and a `lot holder` is a tenant with a non-zero balance of the lot.
 | Action | Party | Roles | Preconditions | Context checks |
 | --- | --- | --- | --- | --- |
 | Manage tenant profile | own tenant | ADMIN | — | — |
-| Manage users | own tenant | ADMIN | — | — |
+| Manage users | own tenant | ADMIN | — | not the caller's own role or active flag |
+| List drivers | own tenant | ADMIN, WAREHOUSE_MANAGER | — | — |
 | Change own password | self | any | — | current password |
 | Manage locations | own tenant | ADMIN | — | GLN prefix |
 | Manage products | own tenant | ADMIN, WAREHOUSE_MANAGER | — | GTIN prefix |
@@ -58,6 +59,15 @@ the lot, and a `lot holder` is a tenant with a non-zero balance of the lot.
 | Issue label series | lot OWNER | ADMIN, WAREHOUSE_MANAGER | lot `ACTIVE` | — |
 
 Any action that is not listed is denied.
+
+Notes on the matrix:
+
+- An admin cannot change its own role or deactivate itself. Admin changes to users of one tenant run one at a
+  time, and each one checks the caller's current account, so a tenant always keeps an active admin and an
+  admin who was just demoted cannot act on the rest of its token's lifetime.
+- *List drivers* lets a warehouse manager pick a driver for a shipment (`GET /api/v1/users?role=DRIVER`).
+- Deactivating a user revokes its sessions. Role changes and deactivation take effect at the next token
+  refresh, within 15 minutes ([ADR-0007](../adr/0007-token-authentication-with-eddsa-and-jwks.md)).
 
 ## 3. Pre-authentication and public operations
 

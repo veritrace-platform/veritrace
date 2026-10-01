@@ -16,6 +16,7 @@ the executable source of truth. A pull request that changes one must change the 
 | Enumerations | `text` with a `CHECK` constraint. Values are `UPPER_SNAKE_CASE`. |
 | Constraint names | `<table>_<columns>_key` (unique), `<table>_<column>_fkey`, `<table>_<rule>_check`, `idx_<table>_<columns>` |
 | Audit columns | `created_at` on every table. `updated_at` on mutable tables, maintained by a trigger. |
+| Tenant consistency | Tenant-scoped tables have a unique `(tenant_id, id)` key. A reference to a row that must belong to the same tenant is a composite foreign key on `(tenant_id, <entity>_id)`, so it cannot cross tenants. |
 
 ## 2. Database roles
 
@@ -37,7 +38,7 @@ creates the roles and databases. Migrations create everything else.
 
 ### 3.1 Tenancy and identity (M1)
 
-**`tenants`** (RLS: the caller's own row only)
+**`tenants`** (RLS: the caller's own row only; created only by `core.register_tenant`, never deleted)
 
 | Column | Type | Constraints |
 | --- | --- | --- |
@@ -51,7 +52,7 @@ creates the roles and databases. Migrations create everything else.
 | `status` | text | `ACTIVE`, `SUSPENDED` |
 | `created_at`, `updated_at` | timestamptz | |
 
-**`users`** (RLS: tenant)
+**`users`** (RLS: tenant; deactivated, never deleted)
 
 | Column | Type | Constraints |
 | --- | --- | --- |
@@ -81,7 +82,7 @@ creates the roles and databases. Migrations create everything else.
 
 ### 3.2 Catalog and inventory (M1)
 
-**`locations`** (RLS: tenant)
+**`locations`** (RLS: tenant; deactivated, never deleted)
 
 | Column | Type | Constraints |
 | --- | --- | --- |
@@ -301,16 +302,50 @@ Indexes: `(owner_tenant_id, created_at)`, `(lot_id)`, `(status)`, `(assigned_dri
 | `core.current_tenant_id()` | every RLS policy | the tenant from `app.current_tenant_id`, or `NULL` (fail closed) |
 | `core.is_shipment_participant(shipment_id)` | shipment RLS policies | boolean |
 | `core.is_lot_visible(lot_id)` | lot RLS policy | boolean |
-| `core.register_tenant(...)` | registration | new tenant, admin user, and headquarters IDs |
-| `core.find_login_user(email)` | login | user ID, tenant ID, password hash, role, active flag |
-| `core.find_auth_session(token_hash)` | token refresh | session and user, for rotation |
+| `core.register_tenant(...)` | registration | new tenant, headquarters, and admin IDs, and the creation time. Registrations run one at a time, and a company prefix that equals, extends, or is extended by a registered one is rejected. |
+| `core.find_login_user(email)` | login | user ID, tenant ID, password hash, role, active flag (false for an inactive user or a suspended tenant); the email matches ignoring case |
+| `core.find_auth_session(token_hash)` | token refresh, logout | session, family, tenant, and user IDs; the rest of the session is read and locked inside the tenant's transaction |
 | `core.lookup_location_by_gln(gln)` | GLN directory | public location fields and owner tenant |
 | `core.lookup_tenant_by_code(code)` | carrier or inspector lookup | ID, code, legal name |
 | `core.recall_lot(lot_id, reason, user_id)` | recall | recall ID, affected shipments (runs across tenants) |
 | `core.public_*` (M2) | public trace API | public projections only |
 
-Every such function sets `search_path` explicitly. `EXECUTE` is revoked from `PUBLIC` and granted to the
-runtime role only.
+Every such function:
+
+- is owned by the owner role and declared `SECURITY DEFINER` with `SET search_path = pg_catalog, pg_temp`;
+- schema-qualifies every object it uses (`core.tenants`). Functions written in SQL use a SQL-standard body
+  (`RETURN …` or `BEGIN ATOMIC … END`), which resolves those references when the function is created;
+- has `EXECUTE` revoked from `PUBLIC` and granted to the runtime role only;
+- returns only the fields listed above and runs no dynamic SQL;
+- has dedicated isolation tests.
+
+### 3.6 Row-level security policies
+
+Every table marked with RLS above enables row-level security in the migration that creates it, together
+with its policies:
+
+- Policies apply `TO veritrace_core_app`. Any other role has no policy and sees nothing.
+- Policies read the tenant context as `(SELECT core.current_tenant_id())`. The scalar subquery runs once
+  per query, whereas a bare call would run once per row.
+- A policy is named after its rule, for example `tenant_isolation`.
+- Tables do not use `FORCE ROW LEVEL SECURITY`. The owner role owns every table and bypasses the policies,
+  which lets migrations and the functions in §3.5 work across tenants without recursive policy checks.
+- Views set `security_invoker = true`, so they apply the policies of the tables they read. The `core`
+  schema has no materialized views, because they cannot carry policies.
+
+A tenant-scoped table (RLS: tenant) uses this policy:
+
+```sql
+ALTER TABLE core.locations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON core.locations
+    TO veritrace_core_app
+    USING (tenant_id = (SELECT core.current_tenant_id()))
+    WITH CHECK (tenant_id = (SELECT core.current_tenant_id()));
+```
+
+The core service's schema conventions test checks every migration for row-level security on each table,
+policy roles, the `(SELECT …)` form, views, the ownership, grants, and `search_path` of §3.5 functions, and
+the DML-only grants of the runtime role, so a migration that breaks one of these fails CI.
 
 ---
 
