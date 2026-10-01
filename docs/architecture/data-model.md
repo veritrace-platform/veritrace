@@ -100,7 +100,7 @@ creates the roles and databases. Migrations create everything else.
 | `is_active` | boolean | default true |
 | `created_at`, `updated_at` | timestamptz | |
 
-**`products`** (RLS: tenant)
+**`products`** (RLS: tenant; deactivated, never deleted)
 
 | Column | Type | Constraints |
 | --- | --- | --- |
@@ -108,18 +108,20 @@ creates the roles and databases. Migrations create everything else.
 | `tenant_id` | uuid | FK |
 | `gtin` | char(14) | globally unique; valid; tenant GCP at position 2 |
 | `name` | text | |
-| `description` | text | nullable |
+| `description` | text | nullable; 1–1000 characters |
 | `min_temp_celsius`, `max_temp_celsius` | numeric(5,2) | −50…80; min < max |
 | `is_active` | boolean | default true |
 | `created_at`, `updated_at` | timestamptz | |
 
-**`lots`** (RLS: the owner tenant, or a tenant that holds or held stock of the lot)
+**`lots`** (RLS: the owner tenant, or a tenant that holds or held stock of the lot, read-only; recalled, never
+deleted)
 
 | Column | Type | Constraints |
 | --- | --- | --- |
 | `id` | uuid | PK |
 | `tenant_id` | uuid | FK; owner (brand owner) |
 | `product_id` | uuid | FK `products` |
+| `gtin`, `product_name`, `min_temp_celsius`, `max_temp_celsius` | | Snapshot of the product at commissioning |
 | `lot_number` | text | `^[0-9A-Za-z._-]{1,20}$`; unique with `product_id` |
 | `production_date`, `expiration_date` | date | expiration ≥ production |
 | `quantity_commissioned` | integer | > 0 |
@@ -129,15 +131,21 @@ creates the roles and databases. Migrations create everything else.
 | `created_by` | uuid | FK `users` |
 | `created_at`, `updated_at` | timestamptz | |
 
-**`inventory_balances`** (RLS: tenant)
+Holders of a lot cannot read the owner's catalog, so the lot carries the product fields that holders and
+shipments need ([ADR-0002](../adr/0002-multi-party-tenancy-with-row-level-security.md) item 5). A later change
+to the product does not change existing lots.
+
+**`inventory_balances`** (RLS: tenant; never deleted)
 
 | Column | Type | Constraints |
 | --- | --- | --- |
 | `tenant_id` | uuid | FK |
-| `location_id` | uuid | FK; PK part |
-| `lot_id` | uuid | FK; PK part |
+| `location_id` | uuid | FK (a location of `tenant_id`); PK part |
+| `lot_id` | uuid | FK (a lot of any tenant); PK part; indexed `(tenant_id, lot_id)` |
 | `quantity_on_hand` | integer | `>= 0` (this constraint guarantees no oversell) |
-| `updated_at` | timestamptz | |
+| `created_at`, `updated_at` | timestamptz | |
+
+A balance that reaches zero stays: it records that the tenant held the lot, which keeps the lot visible to it.
 
 **`inventory_movements`** (RLS: tenant; append-only)
 
@@ -147,7 +155,7 @@ creates the roles and databases. Migrations create everything else.
 | `tenant_id`, `location_id`, `lot_id` | uuid | FK |
 | `quantity_delta` | integer | ≠ 0 |
 | `reason` | text | `COMMISSIONED`, `SHIPMENT_CREATED`, `SHIPMENT_CANCELLED`, `SHIPMENT_DELIVERED` |
-| `shipment_id` | uuid | nullable FK |
+| `shipment_id` | uuid | FK; null exactly for `COMMISSIONED` |
 | `created_by` | uuid | FK `users` |
 | `created_at` | timestamptz | |
 
@@ -301,12 +309,12 @@ Indexes: `(owner_tenant_id, created_at)`, `(lot_id)`, `(status)`, `(assigned_dri
 | --- | --- | --- |
 | `core.current_tenant_id()` | every RLS policy | the tenant from `app.current_tenant_id`, or `NULL` (fail closed) |
 | `core.is_shipment_participant(shipment_id)` | shipment RLS policies | boolean |
-| `core.is_lot_visible(lot_id)` | lot RLS policy | boolean |
+| `core.is_lot_visible(lot_id)` | lot RLS policy | whether the current tenant has or had a balance of the lot |
 | `core.register_tenant(...)` | registration | new tenant, headquarters, and admin IDs, and the creation time. Registrations run one at a time, and a company prefix that equals, extends, or is extended by a registered one is rejected. |
 | `core.find_login_user(email)` | login | user ID, tenant ID, password hash, role, active flag (false for an inactive user or a suspended tenant); the email matches ignoring case |
 | `core.find_auth_session(token_hash)` | token refresh, logout | session, family, tenant, and user IDs; the rest of the session is read and locked inside the tenant's transaction |
-| `core.lookup_location_by_gln(gln)` | GLN directory | public location fields and owner tenant |
-| `core.lookup_tenant_by_code(code)` | carrier or inspector lookup | ID, code, legal name |
+| `core.lookup_location_by_gln(gln)` | GLN directory, shipment destination | ID and public fields of an active location of an active tenant, and that tenant's ID, code, and legal name |
+| `core.lookup_tenant_by_code(code)` | carrier or inspector lookup | ID, code, and legal name of an active tenant |
 | `core.recall_lot(lot_id, reason, user_id)` | recall | recall ID, affected shipments (runs across tenants) |
 | `core.public_*` (M2) | public trace API | public projections only |
 

@@ -24,7 +24,9 @@ A user belongs to exactly one tenant and has exactly one role.
 ## 2. Policy matrix
 
 Party is the caller tenant's relationship to the resource. The `lot OWNER` is the tenant that commissioned
-the lot, and a `lot holder` is a tenant with a non-zero balance of the lot.
+the lot, and a `lot holder` is a tenant that has or had a balance of the lot
+([ADR-0002](../adr/0002-multi-party-tenancy-with-row-level-security.md)). Shipping still needs a sufficient
+balance at the origin.
 
 ### M1
 
@@ -34,8 +36,11 @@ the lot, and a `lot holder` is a tenant with a non-zero balance of the lot.
 | Manage users | own tenant | ADMIN | — | not the caller's own role or active flag |
 | List drivers | own tenant | ADMIN, WAREHOUSE_MANAGER | — | — |
 | Change own password | self | any | — | current password |
+| View catalog (locations, products) | own tenant | ADMIN, WAREHOUSE_MANAGER | — | — |
 | Manage locations | own tenant | ADMIN | — | GLN prefix |
 | Manage products | own tenant | ADMIN, WAREHOUSE_MANAGER | — | GTIN prefix |
+| Look up the directory (GLN, tenant code) | any tenant | any | — | — |
+| View lots | lot OWNER, lot holder | ADMIN, WAREHOUSE_MANAGER | — | — |
 | Commission lot | own tenant | ADMIN, WAREHOUSE_MANAGER | product owned by tenant | location owned by tenant |
 | View inventory | own tenant | ADMIN, WAREHOUSE_MANAGER | — | — |
 | Create shipment | lot holder | ADMIN, WAREHOUSE_MANAGER | lot `ACTIVE`, sufficient balance | origin owned by tenant |
@@ -66,6 +71,9 @@ Notes on the matrix:
   time, and each one checks the caller's current account, so a tenant always keeps an active admin and an
   admin who was just demoted cannot act on the rest of its token's lifetime.
 - *List drivers* lets a warehouse manager pick a driver for a shipment (`GET /api/v1/users?role=DRIVER`).
+- *View catalog*, *View lots*, and *Look up the directory* are the reads behind the dashboard and PWA screens:
+  warehouse managers pick products and locations for lots and shipments, and drivers confirm a checkpoint
+  facility by its GLN. Directory entries are published to every tenant and expose only public fields.
 - Deactivating a user revokes its sessions. Role changes and deactivation take effect at the next token
   refresh, within 15 minutes ([ADR-0007](../adr/0007-token-authentication-with-eddsa-and-jwks.md)).
 

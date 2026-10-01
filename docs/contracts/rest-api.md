@@ -129,14 +129,14 @@ Roles and parties follow [access-control.md](../domain/access-control.md).
 | `GET`, `PATCH` | `/api/v1/users/{user_id}` | ADMIN | Read or update a user (name, phone, role, `is_active`) |
 | `GET` | `/api/v1/directory/locations/{gln}` | bearer | Resolve any tenant's GLN to its public fields |
 | `GET` | `/api/v1/directory/tenants/{code}` | bearer | Resolve a tenant code (carrier or inspector selection) |
-| `GET`, `POST` | `/api/v1/locations` | bearer | List or create locations |
+| `GET`, `POST` | `/api/v1/locations` | bearer | List (filter: `is_active`) or create locations |
 | `GET`, `PATCH` | `/api/v1/locations/{location_id}` | bearer | Read or update a location |
-| `GET`, `POST` | `/api/v1/products` | bearer | List (filter: `q`, `is_active`) or create products |
+| `GET`, `POST` | `/api/v1/products` | bearer | List (filter: `q` on name or GTIN, `is_active`) or create products |
 | `GET`, `PATCH` | `/api/v1/products/{product_id}` | bearer | Read or update a product |
 | `GET`, `POST` | `/api/v1/lots` | bearer | List (filter: `product_id`, `status`) or commission lots |
 | `GET` | `/api/v1/lots/{lot_id}` | bearer | Read a lot |
 | `POST` | `/api/v1/lots/{lot_id}/recall` | ADMIN | Emergency recall; returns the recall and the affected shipment count |
-| `GET` | `/api/v1/inventory` | bearer | Balances (filter: `location_id`, `lot_id`) |
+| `GET` | `/api/v1/inventory` | bearer | Balances above zero (filter: `location_id`, `lot_id`) |
 | `GET`, `POST` | `/api/v1/shipments` | bearer | List (filter: `status`, `party`, `sscc`, `lot_id`, `assigned_to_me`) or create shipments |
 | `GET` | `/api/v1/shipments/summary` | bearer | Counts of the caller's visible shipments by status: `{created, in_transit, delivered, cancelled, recalled}` |
 | `GET` | `/api/v1/shipments/{shipment_id}` | bearer | Read a shipment, including participants |
