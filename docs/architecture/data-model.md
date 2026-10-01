@@ -305,8 +305,8 @@ Indexes: `(owner_tenant_id, created_at)`, `(lot_id)`, `(status)`, `(assigned_dri
 | `core.register_tenant(...)` | registration | new tenant, headquarters, and admin IDs, and the creation time. Registrations run one at a time, and a company prefix that equals, extends, or is extended by a registered one is rejected. |
 | `core.find_login_user(email)` | login | user ID, tenant ID, password hash, role, active flag (false for an inactive user or a suspended tenant); the email matches ignoring case |
 | `core.find_auth_session(token_hash)` | token refresh, logout | session, family, tenant, and user IDs; the rest of the session is read and locked inside the tenant's transaction |
-| `core.lookup_location_by_gln(gln)` | GLN directory | public location fields and owner tenant |
-| `core.lookup_tenant_by_code(code)` | carrier or inspector lookup | ID, code, legal name |
+| `core.lookup_location_by_gln(gln)` | GLN directory, shipment destination | ID and public fields of an active location of an active tenant, and that tenant's ID, code, and legal name |
+| `core.lookup_tenant_by_code(code)` | carrier or inspector lookup | ID, code, and legal name of an active tenant |
 | `core.recall_lot(lot_id, reason, user_id)` | recall | recall ID, affected shipments (runs across tenants) |
 | `core.public_*` (M2) | public trace API | public projections only |
 

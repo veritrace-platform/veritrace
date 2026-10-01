@@ -129,7 +129,7 @@ Roles and parties follow [access-control.md](../domain/access-control.md).
 | `GET`, `PATCH` | `/api/v1/users/{user_id}` | ADMIN | Read or update a user (name, phone, role, `is_active`) |
 | `GET` | `/api/v1/directory/locations/{gln}` | bearer | Resolve any tenant's GLN to its public fields |
 | `GET` | `/api/v1/directory/tenants/{code}` | bearer | Resolve a tenant code (carrier or inspector selection) |
-| `GET`, `POST` | `/api/v1/locations` | bearer | List or create locations |
+| `GET`, `POST` | `/api/v1/locations` | bearer | List (filter: `is_active`) or create locations |
 | `GET`, `PATCH` | `/api/v1/locations/{location_id}` | bearer | Read or update a location |
 | `GET`, `POST` | `/api/v1/products` | bearer | List (filter: `q`, `is_active`) or create products |
 | `GET`, `PATCH` | `/api/v1/products/{product_id}` | bearer | Read or update a product |
