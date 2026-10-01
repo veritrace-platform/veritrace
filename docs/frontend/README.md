@@ -82,7 +82,9 @@ Use the same tokens in every application:
 - It dispatches messages to TanStack Query: it invalidates affected shipment, incident, and lot queries,
   and raises UI notifications.
 
-## 5. Quality gates (CI in every frontend repository)
+## 5. Suggested CI checks
+
+A starting point for each frontend repository's CI; the frontend owner decides the final setup.
 
 1. `pnpm install --frozen-lockfile`
 2. `biome ci`
