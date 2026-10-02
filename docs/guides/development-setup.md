@@ -70,7 +70,7 @@ Host ports are defaults. If a port is taken, override it in `platform-infrastruc
 
 ```bash
 cd core-business-service
-cp .env.example .env        # includes a development-only JWT signing key
+cp .env.example .env        # development-only secrets and the local Kafka broker
 make migrate-up             # applies migrations as the owner role
 make run                    # serves on :8080, admin on :8081
 make test                   # unit tests
@@ -78,7 +78,8 @@ make test-integration       # integration tests (needs Docker)
 make lint
 ```
 
-The gateway on `:8000` forwards to services on the host by default.
+The gateway on `:8000` forwards to services on the host by default. When `.env.example` gains variables,
+copy them into your `.env`; `serve` reports every missing setting at startup.
 
 ## 5. Stopping and cleaning up the stack
 

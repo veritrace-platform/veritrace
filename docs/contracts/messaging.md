@@ -133,7 +133,8 @@ Payload (`data`) per event type. All events are `event_version` 1.
 }
 ```
 
-**`shipment.participant_added`**: `{ "tenant_id": "uuid", "role": "CARRIER" | "INSPECTOR" }`
+**`shipment.participant_added`**: `{ "tenant_id": "uuid", "role": "CARRIER" | "INSPECTOR" }`. A new `CARRIER`
+replaces the owner, which carried the shipment until then, and ends any driver assignment.
 
 **`shipment.driver_assigned`**: `{ "driver_user_id": "uuid" }`
 

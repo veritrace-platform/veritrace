@@ -70,8 +70,9 @@ SSCC = extension digit (tenant setting, default 0)
 
 - Serial references come from a per-tenant counter that is incremented atomically in the same
   transaction that creates the shipment. They are never reused, including for cancelled shipments.
-- The serial space is `10^(16 − len(GCP))`. When it is exhausted, issuance fails with `409 CONFLICT`,
-  and the tenant must change its extension digit.
+- The serial space is `10^(16 − len(GCP))`. When it is exhausted, issuance fails with
+  `409 SSCC_SERIAL_EXHAUSTED`, and the tenant must change its extension digit. A new digit starts a new
+  serial space at 1. A digit that issued SSCCs before cannot be chosen again, so SSCCs never repeat.
 
 ### 3.1 SSCC on logistic labels
 

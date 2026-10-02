@@ -161,7 +161,8 @@ A balance that reaches zero stays: it records that the tenant held the lot, whic
 
 ### 3.3 Shipments (M1)
 
-**`shipments`** (RLS: participants)
+**`shipments`** (RLS: participants; the owner also from the moment it inserts the row; cancelled or recalled,
+never deleted)
 
 | Column | Type | Notes |
 | --- | --- | --- |
@@ -192,8 +193,12 @@ Indexes: `(owner_tenant_id, created_at)`, `(lot_id)`, `(status)`, `(assigned_dri
 | --- | --- | --- |
 | `shipment_id` | uuid | FK; PK part |
 | `tenant_id` | uuid | FK; PK part; indexed `(tenant_id, shipment_id)` |
-| `role` | text | PK part; `OWNER`, `CARRIER`, `CONSIGNEE`, `INSPECTOR` |
+| `role` | text | PK part; `OWNER`, `CARRIER`, `CONSIGNEE`, `INSPECTOR`; one row each but `INSPECTOR` |
+| `tenant_code`, `tenant_legal_name` | text | Snapshot of the tenant's directory fields when it joined |
 | `created_at` | timestamptz | |
+
+Only the owner adds participants. Assigning an external carrier replaces the owner's `CARRIER` row. The snapshot
+lets participants show each other's names without reading each other's tenant rows.
 
 **`pickup_codes`** (RLS: participants)
 
@@ -308,14 +313,14 @@ Indexes: `(owner_tenant_id, created_at)`, `(lot_id)`, `(status)`, `(assigned_dri
 | Function | Used by | Returns |
 | --- | --- | --- |
 | `core.current_tenant_id()` | every RLS policy | the tenant from `app.current_tenant_id`, or `NULL` (fail closed) |
-| `core.is_shipment_participant(shipment_id)` | shipment RLS policies | boolean |
+| `core.is_shipment_participant(shipment_id)` | shipment RLS policies | whether the current tenant takes part in the shipment |
 | `core.is_lot_visible(lot_id)` | lot RLS policy | whether the current tenant has or had a balance of the lot |
 | `core.register_tenant(...)` | registration | new tenant, headquarters, and admin IDs, and the creation time. Registrations run one at a time, and a company prefix that equals, extends, or is extended by a registered one is rejected. |
 | `core.find_login_user(email)` | login | user ID, tenant ID, password hash, role, active flag (false for an inactive user or a suspended tenant); the email matches ignoring case |
 | `core.find_auth_session(token_hash)` | token refresh, logout | session, family, tenant, and user IDs; the rest of the session is read and locked inside the tenant's transaction |
 | `core.lookup_location_by_gln(gln)` | GLN directory, shipment destination | ID and public fields of an active location of an active tenant, and that tenant's ID, code, and legal name |
 | `core.lookup_tenant_by_code(code)` | carrier or inspector lookup | ID, code, and legal name of an active tenant |
-| `core.recall_lot(lot_id, reason, user_id)` | recall | recall ID, affected shipments (runs across tenants) |
+| `core.recall_lot(lot_id, reason, user_id, traceparent)` | recall | recall ID, affected shipment count, and recall time. It runs across tenants: the lot and every shipment of it in `CREATED`, `IN_TRANSIT`, or `DELIVERED` become `RECALLED`, and each such shipment gets a `shipment.recalled` event, hashed in SQL, and an outbox message. It holds the lot's advisory lock exclusively, which shipment creation holds in shared mode. |
 | `core.public_*` (M2) | public trace API | public projections only |
 
 Every such function:
