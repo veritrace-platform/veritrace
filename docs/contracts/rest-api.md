@@ -167,7 +167,7 @@ Roles and parties follow [access-control.md](../domain/access-control.md).
 
 | Milestone | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- | --- |
-| M1 | `GET` | `/api/v1/telemetry/shipments/{sscc}/readings` | bearer | Readings in `[from, to)`. `resolution` is `raw` (max 6 h window), `1m`, or `15m`. |
+| M1 | `GET` | `/api/v1/telemetry/shipments/{sscc}/readings` | bearer | Readings in `[from, to)`. `resolution` is `raw` (max 6 h window), `1m` (max 7 days), or `15m` (max 90 days); `to` defaults to now and `from` to 1 h, 1 day, or 7 days before it. Oldest first, not paged. |
 | M1 | `GET` | `/api/v1/telemetry/shipments/{sscc}/incidents` | bearer | Incidents of one shipment |
 | M1 | `GET` | `/api/v1/telemetry/incidents` | bearer | Incidents across the caller's shipments (filter: `state=open\|resolved`) |
 | M1 | `GET` | `/api/v1/telemetry/incidents/summary` | bearer | `{open_count, last_24h_count}` for the caller's shipments |

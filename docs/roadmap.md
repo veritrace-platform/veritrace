@@ -69,9 +69,9 @@ company prefix.
 | SCM-EP3-US02 | MQTT ingestion (shared subscription, validation) → `iot.telemetry.raw` | telemetry-stream-service | BE | DONE |
 | SCM-EP3-US03 | Reading persistence: hypertable, idempotent batch insert, 15-minute continuous aggregate, dead-letter topic | telemetry-stream-service | BE | DONE |
 | SCM-EP3-US04 | Shipment projection from `shipment.events` | telemetry-stream-service | BE | DONE |
-| SCM-EP3-US05 | Breach detection engine: episodes, incidents with hashes, `telemetry.incidents` | telemetry-stream-service | BE | TODO |
-| SCM-EP3-US06 | WebSocket notification hub: breaches, recalls, live reading subscriptions | telemetry-stream-service | BE | TODO |
-| SCM-EP3-US07 | Telemetry read API: readings and incidents | telemetry-stream-service | BE | TODO |
+| SCM-EP3-US05 | Breach detection engine: episodes, incidents with hashes, `telemetry.incidents` | telemetry-stream-service | BE | DONE |
+| SCM-EP3-US06 | WebSocket notification hub: breaches, recalls, live reading subscriptions | telemetry-stream-service | BE | DONE |
+| SCM-EP3-US07 | Telemetry read API: readings and incidents | telemetry-stream-service | BE | DONE |
 | SCM-EP3-US08 | Live temperature charts and alert center | enterprise-dashboard, driver-mobile-pwa | FE | TODO |
 
 ---

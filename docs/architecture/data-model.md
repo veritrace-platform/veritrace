@@ -437,6 +437,13 @@ participation first.
 | `incident_hash` | char(64) | unique; covers the confirmation fields only |
 | `created_at`, `updated_at` | timestamptz | |
 
+- `id` is a UUIDv7 with the start time, derived from `(sscc, started_at)`, so incidents sort by start and a
+  breach confirmed again maps to the same row ([cold-chain-monitoring.md §5](../domain/cold-chain-monitoring.md#5-on-breach-confirmation)).
+- An SSCC has at most one open incident (partial unique index on `sscc` where `ended_at` is null).
+- `confirmed_at` is at least 30 seconds after `started_at`, and `ended_at` is not before `confirmed_at`.
+- The runtime role inserts incidents and may update only `ended_at`, `duration_seconds`,
+  `extreme_temperature_celsius`, and `updated_at`: the fields that `incident_hash` covers never change.
+
 ---
 
 ## 5. Relayer database (`veritrace_relayer`, schema `relayer`, M2)
