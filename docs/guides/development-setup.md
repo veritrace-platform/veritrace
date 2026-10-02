@@ -96,7 +96,25 @@ make psql-telemetry                                        # then: SELECT * FROM
 The simulator runs in a container (`simulator` profile) and needs no Python on the host. Its README in
 `platform-infrastructure/simulator/` describes the scenarios and options.
 
-## 5. Stopping and cleaning up the stack
+## 5. Demonstration kit
+
+`platform-infrastructure/demo/` seeds a small supply chain through the APIs and runs the M1 acceptance
+scenario: four companies (owner, carrier, consignee, and an unrelated tenant), an account for every role, and
+the catalog, locations, and lots that a shipment needs.
+
+```bash
+cd platform-infrastructure
+make up-apps
+make seed            # idempotent; make demo-accounts lists the accounts
+make demo            # the acceptance run: handover, breach, delivery, recall (about 2 minutes)
+make demo-watch ACCOUNT=admin@d7mart.example   # an account's notifications in the terminal
+```
+
+Every demo account signs in with `DEMO_PASSWORD` from `platform-infrastructure/.env`. The runbook in
+`platform-infrastructure/demo/README.md` lists the companies and accounts, explains each step of the acceptance
+run, and suggests how to present it.
+
+## 6. Stopping and cleaning up the stack
 
 | Command | Effect |
 | --- | --- |
@@ -105,7 +123,7 @@ The simulator runs in a container (`simulator` profile) and needs no Python on t
 | `make clean` | `reset` plus removal of locally built VeriTrace images |
 | `make disk` | Show Docker disk usage |
 
-## 6. Frontend workflow (no Go toolchain)
+## 7. Frontend workflow (no Go toolchain)
 
 ```bash
 cd platform-infrastructure
@@ -113,4 +131,5 @@ make up-apps                # also builds and runs the Go services from sibling 
 ```
 
 Point the frontend at `http://localhost:8000`. See [frontend-integration.md](frontend-integration.md).
-For live telemetry, create a shipment and run `make simulate SSCC=<shipment SSCC>` as in §4.
+`make seed` provides companies, accounts for every role, and catalog data to sign in with (§5). For live
+telemetry, create a shipment and run `make simulate SSCC=<shipment SSCC>` as in §4.

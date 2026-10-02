@@ -85,3 +85,9 @@ Every error is `application/problem+json` with a stable `code`
   the shipment's product (`GET /shipments/{id}`).
 - The IoT fleet simulator produces readings for a shipment's SSCC
   ([development-setup.md §4](development-setup.md#4-backend-workflow-go-on-the-host)).
+
+## 7. Demo data
+
+`make seed` in `platform-infrastructure` creates four companies with an account for every role, locations,
+products, and lots ([development-setup.md §5](development-setup.md#5-demonstration-kit)). `make demo` then runs a
+shipment through every screen-worthy state, which is a quick way to fill lists, timelines, and the alert center.
