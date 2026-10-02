@@ -242,7 +242,8 @@ Envelope from §2.1 with `producer = "telemetry-stream-service"` and `actor = nu
 }
 ```
 
-`incident_hash` is the SHA-256 of the RFC 8785 canonical JSON of this object without `incident_hash`.
+`incident_hash` is the SHA-256 of the RFC 8785 canonical JSON of this object without `incident_hash`
+([test vectors](test-vectors/incident-hash.json)). Times in incident data are device times with milliseconds.
 
 **`cold_chain.breach_resolved`**
 
@@ -255,6 +256,14 @@ Envelope from §2.1 with `producer = "telemetry-stream-service"` and `actor = nu
   "extreme_temperature_celsius": 11.2
 }
 ```
+
+- `occurred_at` is `confirmed_at` or `ended_at`, and `subject.status` is the shipment's status at that point.
+- `ended_at` is the first reading back in bounds, the last reading before a gap, or the last reading before the
+  shipment stopped being monitored ([cold-chain-monitoring.md §4](../domain/cold-chain-monitoring.md#4-breach-rule)).
+  `duration_seconds` counts whole seconds from `started_at`.
+- `event_id` and `incident_id` are derived from the incident, so an event produced again after a failure is
+  identical to the first and consumers can drop it. Records carry the `traceparent` of the reading or shipment
+  event that caused them.
 
 ---
 
@@ -269,6 +278,15 @@ Envelope from §2.1 with `producer = "telemetry-stream-service"` and `actor = nu
 | Heartbeat | Server ping every 30 s; the connection is closed if no pong arrives within 10 s |
 | Token expiry | The server closes the connection with `4401` at token expiry; the client reconnects with a fresh token |
 | Close codes | `4400` bad message, `4401` unauthenticated or expired, `4403` forbidden subscription, `4408` too many subscriptions (max 20), `1001` server shutdown |
+| Delivery | Every instance reads `telemetry.incidents`, `shipment.events`, and `iot.telemetry.raw` from the end, in a consumer group of its own, and delivers to its own connections ([ADR-0012](../adr/0012-cold-chain-detection-engine.md)). Nothing is replayed after a reconnect: clients read the current state through the REST API. |
+
+The handshake is refused before the upgrade with `400` when `veritrace.v1` is not offered and with `403` for
+another origin. After the upgrade:
+
+- A missing, invalid, or expired token closes the connection with `4401`, so the client refreshes its token
+  and reconnects. The server closes with `1013` while tokens cannot be verified (core's keys are unreachable).
+- A frame that is not a JSON text message of at most 4 KiB closes the connection with `4400`.
+- A connection that falls more than 256 messages behind is closed with `1008`; the client reconnects.
 
 ### 6.1 Server → client
 
@@ -287,6 +305,10 @@ Every message:
 | `subscribed` / `unsubscribed` | requester | `{ "channel": "telemetry", "sscc": "…" }` |
 | `error` | requester | `{ "code": "FORBIDDEN" \| "NOT_FOUND" \| "INVALID_MESSAGE", "message": "…" }` |
 
+For breaches and recalls, `id` is the `event_id` of the Kafka event, so a client can drop a repeated message.
+The telemetry service's OpenAPI document describes these messages as the `NotificationMessage` and
+`ClientMessage` schemas, so clients can generate their types.
+
 ### 6.2 Client → server
 
 ```json
@@ -295,4 +317,11 @@ Every message:
 ```
 
 Subscriptions are allowed only for shipments that the caller may view
-([access-control.md](../domain/access-control.md)).
+([access-control.md](../domain/access-control.md)):
+
+- A malformed message, an unknown `type` or `channel`, or an invalid SSCC answers `error` `INVALID_MESSAGE`.
+- A shipment that the telemetry service does not know, or in which the caller's tenant takes no part, answers
+  `error` `NOT_FOUND`. The connection stays open; the projection may not have the shipment yet.
+- A visible shipment that a driver is not assigned to answers `error` `FORBIDDEN`, and the connection closes
+  with `4403`.
+- Following the same SSCC again is not another subscription; a 21st one closes the connection with `4408`.

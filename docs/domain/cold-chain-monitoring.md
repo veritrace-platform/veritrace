@@ -50,7 +50,11 @@ stateDiagram-v2
   temperature. The transition back to `NORMAL` sets `ended_at` and the final duration.
 - **Ordering:** a reading whose time is not after the last evaluated reading for that SSCC is stored but
   not evaluated.
-- **Multiple devices:** readings from all devices on the same SSCC feed one episode stream.
+- **Multiple devices:** readings from all devices on the same SSCC feed one episode stream. Readings that arrive
+  together are evaluated in device-time order.
+- **End of monitoring:** when the shipment becomes `DELIVERED`, `CANCELLED`, or `RECALLED`, its readings are no
+  longer evaluated, so none can end an open incident. The incident is resolved at the last reading recorded
+  until the status change.
 
 ## 5. On breach confirmation
 
@@ -64,10 +68,15 @@ Within one second of processing the confirming reading, the system:
 
 On resolution, `cold_chain.breach_resolved` is produced and pushed the same way.
 
+Incidents and their events take IDs derived from the episode (its SSCC and start), so processing a reading again
+never yields a second incident or a different event: a repeated event has the same `event_id`.
+
 ## 6. State recovery
 
 - Episode state is held in memory per SSCC by the consumer that owns the SSCC's Kafka partition.
 - When a partition is assigned, which happens on startup or rebalance, state for an SSCC is rebuilt lazily
-  from its first new reading. The rebuild uses readings and open incidents from the last 60 seconds in
-  the database.
-- Because incidents are unique per `(sscc, started_at)`, a rebuild never duplicates one.
+  from its first new reading. The rebuild starts from the SSCC's latest incident (an open one continues the
+  episode) and evaluates the SSCC's readings of the last 60 seconds again. A batch that fails also drops the
+  state, so its retry rebuilds it the same way.
+- Because incidents are unique per `(sscc, started_at)`, a rebuild never duplicates one. It records a
+  confirmation or resolution that a failed batch did not persist, and only then produces its event.

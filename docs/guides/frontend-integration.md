@@ -68,3 +68,20 @@ Every error is `application/problem+json` with a stable `code`
   [`canonical-json.json`](../contracts/test-vectors/canonical-json.json) and
   [`shipment-events.json`](../contracts/test-vectors/shipment-events.json).
 - **Recall:** a `shipment.recalled` notification blocks further actions on that shipment in every UI.
+- **Incidents:** an incident whose `incident_hash` a client checks is canonicalized the same way, tested with
+  [`incident-hash.json`](../contracts/test-vectors/incident-hash.json).
+
+## 6. Real-time and telemetry
+
+- WebSocket message types are in the telemetry OpenAPI document (`NotificationMessage`, `ClientMessage`), so
+  they can be generated like the REST types. Breach and recall messages carry the Kafka `event_id` as `id`;
+  drop a message whose `id` was seen.
+- Close codes: on `4401`, refresh the session and reconnect. On `4403`, do not subscribe to that SSCC again.
+  `4408` means more than 20 subscriptions. On `1001`, `1008`, `1013`, or a network error, reconnect with
+  backoff. After every reconnect, re-subscribe and refetch the affected queries: messages sent while
+  disconnected are not replayed.
+- Charts read `GET /api/v1/telemetry/shipments/{sscc}/readings`: `raw` for a live view of up to 6 hours, then
+  `1m` or `15m` for longer ranges, and append `telemetry.reading` messages while subscribed. Bounds come from
+  the shipment's product (`GET /shipments/{id}`).
+- The IoT fleet simulator produces readings for a shipment's SSCC
+  ([development-setup.md §4](development-setup.md#4-backend-workflow-go-on-the-host)).
