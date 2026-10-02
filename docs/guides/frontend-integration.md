@@ -63,4 +63,8 @@ Every error is `application/problem+json` with a stable `code`
   [gs1-identifiers.md §3.1](../domain/gs1-identifiers.md#31-sscc-on-logistic-labels).
 - **Positions:** handover actions send `{latitude, longitude, accuracy_meters}` from high-accuracy
   geolocation.
+- **Event log:** `GET /shipments/{id}/integrity` verifies the chain on the server. A client that recomputes
+  hashes itself canonicalizes with RFC 8785, tested with
+  [`canonical-json.json`](../contracts/test-vectors/canonical-json.json) and
+  [`shipment-events.json`](../contracts/test-vectors/shipment-events.json).
 - **Recall:** a `shipment.recalled` notification blocks further actions on that shipment in every UI.

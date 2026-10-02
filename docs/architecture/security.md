@@ -45,6 +45,7 @@ runs at most four hashes at a time, because each one holds 19 MiB.
 - `.env` files are git-ignored. Each repository commits a `.env.example` with placeholder values and
   generation hints.
 - Versioned keys (`kid` for JWT, `master_key_id`, label `key_version`) allow rotation without downtime.
+- `PICKUP_CODE_PEPPER` is base64 of at least 32 random bytes. Changing it voids every active pickup code.
 - `JWT_SIGNING_KEYS` lists `<kid>:<base64 of 32 random bytes>` entries separated by commas. The first key signs,
   and the JWKS publishes all of them. To rotate, put a new key first; once the old key has signed nothing for
   15 minutes (the access token lifetime), remove it.

@@ -50,11 +50,11 @@ scenario script doubles as the M1 acceptance run.
 | SCM-EP2-US02 | Location catalog (GLN, geo-fence) and GLN/tenant directory lookups | core-business-service | BE | DONE |
 | SCM-EP2-US03 | Product catalog (GTIN-14, temperature bounds) | core-business-service | BE | DONE |
 | SCM-EP2-US04 | Lot commissioning and inventory ledger (balances, movements) | core-business-service | BE | DONE |
-| SCM-EP2-US05 | Shipment event log (RFC 8785, hash chain), outbox relay to `shipment.events`, integrity endpoint | core-business-service | BE | TODO |
-| SCM-EP2-US06 | Shipment creation (SSCC, participants, snapshots, allocation), carrier and driver assignment, cancellation | core-business-service | BE | TODO |
-| SCM-EP2-US07 | Pickup handover: pickup code issuance and confirmation with SSCC scan and origin geo-fence | core-business-service | BE | TODO |
-| SCM-EP2-US08 | Transit checkpoints and delivery confirmation with destination geo-fence | core-business-service | BE | TODO |
-| SCM-EP2-US09 | Emergency lot recall across tenants with operational lock | core-business-service | BE | TODO |
+| SCM-EP2-US05 | Shipment event log (RFC 8785, hash chain), outbox relay to `shipment.events`, integrity endpoint | core-business-service | BE | DONE |
+| SCM-EP2-US06 | Shipment creation (SSCC, participants, snapshots, allocation), carrier and driver assignment, cancellation | core-business-service | BE | DONE |
+| SCM-EP2-US07 | Pickup handover: pickup code issuance and confirmation with SSCC scan and origin geo-fence | core-business-service | BE | DONE |
+| SCM-EP2-US08 | Transit checkpoints and delivery confirmation with destination geo-fence | core-business-service | BE | DONE |
+| SCM-EP2-US09 | Emergency lot recall across tenants with operational lock | core-business-service | BE | DONE |
 | SCM-EP2-US10 | Dashboard operations: overview, catalog, lots, inventory, shipments (create, assign, pickup code, delivery, cancel), recall, logistic label printing ([spec](frontend/enterprise-dashboard.md)) | enterprise-dashboard | FE | TODO |
 | SCM-EP2-US11 | PWA flows: driver assignments, pickup, checkpoints; dock receiving; offline read-only cache ([spec](frontend/driver-mobile-pwa.md)) | driver-mobile-pwa | FE | TODO |
 
