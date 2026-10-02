@@ -81,6 +81,21 @@ make lint
 The gateway on `:8000` forwards to services on the host by default. When `.env.example` gains variables,
 copy them into your `.env`; `serve` reports every missing setting at startup.
 
+`telemetry-stream-service` works the same way. Its `.env.example` connects to the local Kafka and
+Mosquitto, and `make run` starts the ingest and processor components next to the API
+([ADR-0012](../adr/0012-cold-chain-detection-engine.md)). To watch readings flow, create a shipment through
+the core API and replay a scenario of the IoT fleet simulator for its SSCC:
+
+```bash
+cd platform-infrastructure
+make simulate-list                                         # normal, short-excursion, sustained-breach, sensor-gap
+make simulate SCENARIO=sustained-breach SSCC=<shipment SSCC>
+make psql-telemetry                                        # then: SELECT * FROM telemetry.sensor_readings;
+```
+
+The simulator runs in a container (`simulator` profile) and needs no Python on the host. Its README in
+`platform-infrastructure/simulator/` describes the scenarios and options.
+
 ## 5. Stopping and cleaning up the stack
 
 | Command | Effect |
@@ -98,3 +113,4 @@ make up-apps                # also builds and runs the Go services from sibling 
 ```
 
 Point the frontend at `http://localhost:8000`. See [frontend-integration.md](frontend-integration.md).
+For live telemetry, create a shipment and run `make simulate SSCC=<shipment SSCC>` as in §4.

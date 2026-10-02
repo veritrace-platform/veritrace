@@ -47,6 +47,11 @@ Payload (compact, because it is sent by constrained devices):
 
 The device ID is taken from the topic, never from the payload.
 
+Ingestion acknowledges a message only after Kafka has acknowledged its reading, and keeps its MQTT session
+across restarts, so the broker redelivers what was not acknowledged. A reading delivered twice is stored once.
+A reading that breaks a rule of [cold-chain-monitoring.md §2](../domain/cold-chain-monitoring.md#2-reading-validation)
+is acknowledged, counted, and logged, but not forwarded.
+
 ---
 
 ## 2. Kafka: conventions
@@ -66,7 +71,10 @@ The device ID is taken from the topic, never from the payload.
 | `shipment.events` | `sscc` | 6 | unlimited | core (outbox relay) | telemetry projection, relayer (M2) |
 | `telemetry.incidents` | `sscc` | 6 | unlimited | telemetry processor | relayer (M2) |
 
-Consumer group IDs follow `<service>.<purpose>`, for example `telemetry-stream-service.projection`.
+Consumer group IDs follow `<service>.<purpose>`: `telemetry-stream-service.processor` reads
+`iot.telemetry.raw`, and `telemetry-stream-service.projection` reads `shipment.events`. Consumers commit
+offsets only after a batch is processed, so a batch may be processed again after a crash; processing is
+idempotent.
 
 ### 2.1 Domain event envelope
 
@@ -198,7 +206,16 @@ data rather than domain events.
 }
 ```
 
-`iot.telemetry.dlq` wraps a failed record as `{ "error": "…", "failed_at": "…", "record": { … } }`.
+- Values are rounded to the precision that the database stores: two decimals for temperature and humidity,
+  six for coordinates. `humidity_percent` is `null` when the device has no humidity sensor.
+- Timestamps carry milliseconds, the precision of device clocks.
+- Headers are `traceparent` (a new trace per reading) and `content-type`. Raw readings are not domain
+  events, so they carry no `event-type`.
+
+`iot.telemetry.dlq` wraps a record that the processor cannot store as
+`{ "error": "…", "failed_at": "…", "record": { … } }`, with the original key and a span in the original trace.
+`record` is the original value, or a JSON string when the value is not JSON. A record that fails validation is
+dead-lettered at once; a reading that the database refuses is tried three more times first.
 
 ---
 

@@ -382,9 +382,18 @@ participation first.
 
 - Unique `(sscc, device_id, recorded_at)`, which also makes inserts idempotent.
 - Index `(sscc, recorded_at DESC)`.
-- Compression after 7 days, segmented by `sscc`.
-- A continuous aggregate `sensor_readings_15m` (avg, min, and max per SSCC per 15 minutes) serves charts
-  and the public timeline.
+- Compression after 7 days, segmented by `sscc` and ordered by `recorded_at DESC, device_id`.
+- Check constraints repeat the validation rules of
+  [cold-chain-monitoring.md §2](../domain/cold-chain-monitoring.md#2-reading-validation) that a single row can
+  check: SSCC digits, device ID format, and value ranges.
+- The runtime role may only read and insert readings. It may create temporary tables: each batch is copied
+  into a session-local staging table, from which one `INSERT … ON CONFLICT DO NOTHING` stores the new
+  readings ([ADR-0012](../adr/0012-cold-chain-detection-engine.md)).
+- A continuous aggregate `sensor_readings_15m` serves charts and the public timeline. Per SSCC and 15-minute
+  `bucket`, it holds `avg_temperature_celsius`, `min_temperature_celsius`, `max_temperature_celsius`, and
+  `reading_count`. A policy materializes buckets up to two days back every 5 minutes, which covers late
+  readings; newer buckets are aggregated at query time (`materialized_only = false`). The runtime role may
+  only read it.
 
 **`shipment_projection`**
 
@@ -400,6 +409,15 @@ participation first.
 | `min_temp_celsius`, `max_temp_celsius` | numeric(5,2) | |
 | `last_event_sequence` | integer | makes projection updates idempotent |
 | `updated_at` | timestamptz | |
+
+- `shipment.created` inserts the row: the owner, the participant tenants, the product snapshot, the bounds,
+  and the assigned driver.
+- Every later event sets `status` from its subject. `shipment.participant_added` adds the tenant, and a new
+  `CARRIER` also clears `assigned_driver_id` (the owner's driver no longer carries the shipment).
+  `shipment.driver_assigned` sets the driver.
+- An event at or below `last_event_sequence` is a redelivery and changes nothing. Events of an
+  `event_version` other than 1 are skipped.
+- Rows are never deleted.
 
 **`cold_chain_incidents`**
 
