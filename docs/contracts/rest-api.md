@@ -26,6 +26,7 @@ Request and response schemas live in each service's OpenAPI document, which is t
 | Commands | State-changing actions are `POST` sub-resources (for example `/shipments/{id}/pickup`) that return the updated resource |
 | Partial update | `PATCH` with a JSON merge patch (RFC 7396) of the mutable fields |
 | Tracing | Clients may send `traceparent`. Every response carries `X-Trace-Id`. |
+| Caching | Responses carry `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`, so no cache keeps tenant data. The JWKS may be cached for 5 minutes. A `405` lists the supported methods in `Allow`. |
 | Limits | JSON bodies up to 1 MiB. Document uploads up to 25 MiB (M2). |
 | Rate limits | Login and registration: 10/min per IP. Public endpoints: 60/min per IP. `429` responses include `Retry-After`. The client address is read from `X-Forwarded-For` behind the proxies listed in `TRUSTED_PROXIES` (the gateway and the frontend servers). |
 
@@ -189,5 +190,5 @@ These endpoints are never routed through the gateway.
 | Path | Purpose |
 | --- | --- |
 | `GET /healthz` | Liveness: the process is serving |
-| `GET /readyz` | Readiness: dependencies (database, brokers) reachable |
+| `GET /readyz` | Readiness: the dependencies the service needs to serve requests are reachable. core: PostgreSQL (the outbox buffers events while Kafka is down). telemetry: PostgreSQL, Kafka, core's token keys, and, with the ingest component, the MQTT subscription. |
 | `GET /metrics` | Prometheus exposition |

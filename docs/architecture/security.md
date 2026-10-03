@@ -65,4 +65,6 @@ Log instead `trace_id`, `tenant_id`, `user_id`, and identifiers (SSCC, GLN) wher
 
 - Dependabot is enabled for Go modules, GitHub Actions, and Docker base images.
 - CI runs `govulncheck`.
-- Runtime images are distroless and non-root, with a read-only root filesystem where the service allows it.
+- Runtime images are distroless and non-root. The local environment runs the images built from the workspace
+  (services, migrations, simulator, demonstration kit) with a read-only root filesystem, no Linux capabilities,
+  and `no-new-privileges`.

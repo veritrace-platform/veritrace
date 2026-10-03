@@ -4,6 +4,7 @@
 # Usage:
 #   scripts/workspace.sh clone    clone every repository that is missing next to this one
 #   scripts/workspace.sh status   show branch, pending changes, and upstream divergence of every repository
+#   scripts/workspace.sh check    run the checks of every backend repository, then the cross-repository checks
 #
 # VERITRACE_GIT_BASE overrides the remote base, e.g. git@github.com:veritrace-platform for SSH.
 set -euo pipefail
@@ -55,11 +56,34 @@ status() {
   done
 }
 
+# Repositories whose Makefile has a check target that runs what their CI runs without a live stack.
+checked_repos=(
+  platform-infrastructure
+  core-business-service
+  telemetry-stream-service
+)
+
+check() {
+  local failed=()
+  for repo in "${checked_repos[@]}"; do
+    printf '\n==> %s\n' "$repo"
+    make -C "$workspace/$repo" check || failed+=("$repo")
+  done
+  printf '\n==> veritrace\n'
+  make -C "$workspace/veritrace" lint check-workspace || failed+=(veritrace)
+  if ((${#failed[@]} > 0)); then
+    printf '\nfailed: %s\n' "${failed[*]}" >&2
+    return 1
+  fi
+  printf '\nevery check passed\n'
+}
+
 case "${1:-}" in
   clone) clone ;;
   status) status ;;
+  check) check ;;
   *)
-    echo "usage: $0 clone|status" >&2
+    echo "usage: $0 clone|status|check" >&2
     exit 2
     ;;
 esac

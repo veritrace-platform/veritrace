@@ -76,7 +76,12 @@ make run                    # serves on :8080, admin on :8081
 make test                   # unit tests
 make test-integration       # integration tests (needs Docker)
 make lint
+make check                  # everything CI checks: lint, generated code, OpenAPI, all tests
 ```
+
+`make -C veritrace check-all` runs `make check` in every backend repository (platform-infrastructure lints its
+configuration and tests the simulator and the demonstration kit), then checks the documentation links and the
+shared Go platform code across repositories. It prints the repositories that failed.
 
 The gateway on `:8000` forwards to services on the host by default. When `.env.example` gains variables,
 copy them into your `.env`; `serve` reports every missing setting at startup.

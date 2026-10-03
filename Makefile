@@ -26,6 +26,10 @@ check-workspace: ## Check docs links across all repositories and shared Go platf
 check-drift: ## Report differences in shared Go platform packages across service repositories
 	scripts/check-platform-drift.sh
 
+.PHONY: check-all
+check-all: ## Run the checks of every backend repository (lint, generated code, all tests), then check-workspace
+	scripts/workspace.sh check
+
 .PHONY: github-settings
 github-settings: ## Show the repository settings that scripts/github-settings.sh --apply would set
 	scripts/github-settings.sh
