@@ -25,7 +25,7 @@ document; they are not required in branch names, commits, or pull requests.
 | SCM-EP0-US02 | Local environment: pinned compose stack, database bootstrap, Kafka topics, MQTT auth, gateway | platform-infrastructure | BE | DONE |
 | SCM-EP0-US03 | Go service skeleton: config, logging, trace context, problem responses, admin server, graceful shutdown, migrations, Docker image, CI | core-business-service, telemetry-stream-service | BE | DONE |
 | SCM-EP0-US04 | Organization-wide contribution files and repository hygiene | .github, all | BE | DONE |
-| SCM-EP0-US05 | Demonstration kit: idempotent seed data (tenants, users, locations, products, lots), end-to-end scenario script, and runbook | platform-infrastructure | BE | TODO |
+| SCM-EP0-US05 | Demonstration kit: idempotent seed data (tenants, users, locations, products, lots), end-to-end scenario script, and runbook | platform-infrastructure | BE | DONE |
 | SCM-EP0-US06 | Frontend foundations per ADR-0020/0021/0022: scaffold, typed API client, BFF session, i18n, real-time client, CI (one per repository) | enterprise-dashboard, driver-mobile-pwa, public-trace-portal | FE | TODO |
 
 SCM-EP0-US05 comes last in M1. The kit seeds tenants, catalog data, and lots through the EP1–EP3 APIs, and its
