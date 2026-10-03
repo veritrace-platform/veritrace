@@ -285,7 +285,8 @@ another origin. After the upgrade:
 
 - A missing, invalid, or expired token closes the connection with `4401`, so the client refreshes its token
   and reconnects. The server closes with `1013` while tokens cannot be verified (core's keys are unreachable).
-- A frame that is not a JSON text message of at most 4 KiB closes the connection with `4400`.
+- A frame that is not a JSON text message of at most 4 KiB closes the connection with `4400`, or with `1009` when it
+  exceeds 64 KiB.
 - A connection that falls more than 256 messages behind is closed with `1008`; the client reconnects.
 
 ### 6.1 Server → client
