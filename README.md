@@ -53,7 +53,7 @@ main flows.
 | Repository | Purpose | Stack |
 | --- | --- | --- |
 | [`veritrace`](https://github.com/veritrace-platform/veritrace) | **Start here.** Documentation, roadmap, decisions, workspace tooling | Markdown, Bash, Python |
-| [`platform-infrastructure`](https://github.com/veritrace-platform/platform-infrastructure) | Local stack, database and broker bootstrap, gateway, IoT simulator | Docker Compose, Caddy |
+| [`platform-infrastructure`](https://github.com/veritrace-platform/platform-infrastructure) | Local stack, database and broker bootstrap, gateway, IoT simulator, demonstration kit | Docker Compose, Caddy, Python |
 | [`core-business-service`](https://github.com/veritrace-platform/core-business-service) | Tenants, identity, GS1 catalog, lots, inventory, shipments, handover, recall, document vault, public trace API | Go, PostgreSQL |
 | [`telemetry-stream-service`](https://github.com/veritrace-platform/telemetry-stream-service) | Telemetry ingestion, breach detection, real-time notifications | Go, MQTT, Kafka, TimescaleDB |
 | [`blockchain-relayer-service`](https://github.com/veritrace-platform/blockchain-relayer-service) | Merkle batching, gasless commits, chain indexing, proofs | Go, Redis, go-ethereum |
@@ -79,6 +79,7 @@ git clone https://github.com/veritrace-platform/veritrace.git
 make -C veritrace workspace                  # clone every repository side by side
 make -C platform-infrastructure up-apps      # local stack plus the Go services
 make -C platform-infrastructure ps           # every container healthy
+make -C platform-infrastructure seed demo    # demo companies, then the M1 acceptance run
 ```
 
 The [development setup guide](docs/guides/development-setup.md) covers prerequisites, ports, and the
@@ -103,6 +104,7 @@ backend and frontend workflows.
 | `make status` | Branch, pending changes, and upstream divergence of every repository |
 | `make check-docs` | Check links and anchors in this repository |
 | `make check-workspace` | Check links from other repositories into these docs, and shared Go platform drift |
+| `make check-all` | Run the checks of every backend repository (lint, generated code, all tests), then `check-workspace` |
 | `make github-settings` | Preview the repository settings (description, topics, merge rules, branch protection); apply with `scripts/github-settings.sh --apply` |
 
 ## Contributing

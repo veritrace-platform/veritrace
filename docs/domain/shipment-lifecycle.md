@@ -15,11 +15,11 @@ if it holds stock of that lot, which it gets by receiving an earlier shipment.
 
 ## 2. Commissioning a lot
 
-1. A warehouse manager or admin creates a lot for one of the tenant's products. They supply the lot
+1. A warehouse manager or admin creates a lot for one of the tenant's active products. They supply the lot
    number, production date, expiration date (not earlier than the production date), quantity produced,
-   and the location where the goods were produced or stored.
-2. The lot starts `ACTIVE`. The location's balance for the lot increases by the quantity, and a
-   `COMMISSIONED` inventory movement is recorded.
+   and the active location where the goods were produced or stored.
+2. The lot starts `ACTIVE` and copies the product's GTIN, name, and temperature bounds. The location's
+   balance for the lot increases by the quantity, and a `COMMISSIONED` inventory movement is recorded.
 3. `(product, lot number)` is unique.
 
 ## 3. Shipment state machine
@@ -72,8 +72,9 @@ go negative, because a database constraint enforces it.
 
 ## 5. Carrier and driver assignment (state `CREATED`)
 
-- The owner may assign a carrier tenant if none other than itself was set. This emits
-  `shipment.participant_added`.
+- The owner may assign a carrier tenant if none other than itself was set. The carrier replaces the owner,
+  the driver that the owner may have assigned is released, any active pickup code is invalidated, and
+  `shipment.participant_added` is emitted.
 - A user of the **carrier** tenant (ADMIN or WAREHOUSE_MANAGER) assigns one of its active DRIVER users.
   Reassignment is allowed while the shipment is `CREATED`. It invalidates any active pickup code and emits
   `shipment.driver_assigned`.
@@ -84,7 +85,7 @@ go negative, because a database constraint enforces it.
 
 1. **Issue pickup code** (owner, ADMIN or WAREHOUSE_MANAGER; a driver must be assigned):
    - The system generates a 6-digit code with a CSPRNG and stores only
-     `HMAC-SHA256(pepper, shipment_id ‖ code)`.
+     `HMAC-SHA256(pepper, shipment_id ‖ code)`: the 16 bytes of the shipment ID followed by the six ASCII digits.
    - The code is valid for **15 minutes** and allows **5 attempts**.
    - Issuing a new code invalidates the previous one.
    - The plaintext code is returned once, to be handed to the driver in person at the dock.
@@ -134,8 +135,8 @@ is client-reported and is treated as evidence; the pickup code is the control th
 ## 7. Cancellation: `CREATED → CANCELLED`
 
 The owner (ADMIN or WAREHOUSE_MANAGER) cancels a shipment that has not been picked up, and gives a reason.
-The allocated quantity returns to the origin balance (movement `SHIPMENT_CANCELLED`). The SSCC is retired
-and never reused. Event `shipment.cancelled`.
+The allocated quantity returns to the origin balance (movement `SHIPMENT_CANCELLED`), and any active pickup
+code is invalidated. The SSCC is retired and never reused. Event `shipment.cancelled`.
 
 ## 8. Emergency recall
 
@@ -146,7 +147,7 @@ and never reused. Event `shipment.cancelled`.
      `409 LOT_RECALLED`.
   2. Every shipment of the lot in state `CREATED`, `IN_TRANSIT`, or `DELIVERED` becomes `RECALLED`,
      **across all tenants** (including downstream hops). Each one emits `shipment.recalled` with the
-     recall ID, reason, and previous status.
+     recall ID, reason, and previous status, and its active pickup code, if any, is invalidated.
   3. Balances are not changed. The stock physically stays where it is and is quarantined through the lot
      status.
 - **Notification:** the real-time hub pushes `shipment.recalled` to every participant tenant of every

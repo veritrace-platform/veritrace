@@ -8,7 +8,7 @@
 | **M2 — Decentralized Trust** | Encrypted documents, on-chain commitments, public verification, operations | EP4–EP7 | Planned |
 
 **Status values:** `TODO` · `IN_PROGRESS` · `BLOCKED` · `DONE`. A story is `DONE` when it meets the
-[Definition of Done](guides/engineering-workflow.md#4-definition-of-done).
+[Definition of Done](guides/engineering-workflow.md#2-definition-of-done).
 
 **Owners:** **BE** means backend and platform; **FE** means frontend. Story IDs identify work in this
 document; they are not required in branch names, commits, or pull requests.
@@ -25,47 +25,53 @@ document; they are not required in branch names, commits, or pull requests.
 | SCM-EP0-US02 | Local environment: pinned compose stack, database bootstrap, Kafka topics, MQTT auth, gateway | platform-infrastructure | BE | DONE |
 | SCM-EP0-US03 | Go service skeleton: config, logging, trace context, problem responses, admin server, graceful shutdown, migrations, Docker image, CI | core-business-service, telemetry-stream-service | BE | DONE |
 | SCM-EP0-US04 | Organization-wide contribution files and repository hygiene | .github, all | BE | DONE |
-| SCM-EP0-US05 | Demonstration kit: idempotent seed data (tenants, users, locations, products, lots), end-to-end scenario script, and runbook | platform-infrastructure | BE | TODO |
+| SCM-EP0-US05 | Demonstration kit: idempotent seed data (tenants, users, locations, products, lots), end-to-end scenario script, and runbook | platform-infrastructure | BE | DONE |
 | SCM-EP0-US06 | Frontend foundations per ADR-0020/0021/0022: scaffold, typed API client, BFF session, i18n, real-time client, CI (one per repository) | enterprise-dashboard, driver-mobile-pwa, public-trace-portal | FE | TODO |
+
+SCM-EP0-US05 comes last in M1. The kit seeds tenants, catalog data, and lots through the EP1–EP3 APIs, and its
+scenario script doubles as the M1 acceptance run.
 
 ### EP1 — Multi-tenancy, identity, and access control
 
 | ID | Story | Repos | Owner | Status |
 | --- | --- | --- | --- | --- |
-| SCM-EP1-US01 | Tenant isolation foundation: tenant transaction helper, `SECURITY DEFINER` conventions, RLS isolation test harness | core-business-service | BE | TODO |
-| SCM-EP1-US02 | Tenant registration with company prefix, headquarters GLN, and first admin | core-business-service | BE | TODO |
-| SCM-EP1-US03 | Authentication: login, EdDSA access tokens, rotating refresh tokens, logout, JWKS, rate limiting | core-business-service | BE | TODO |
-| SCM-EP1-US04 | User management and own-password change | core-business-service | BE | TODO |
-| SCM-EP1-US05 | Access control policy function (per-action party, role, state, and context) | core-business-service | BE | TODO |
+| SCM-EP1-US01 | Tenant isolation foundation: tenant transaction helper, `SECURITY DEFINER` conventions, RLS isolation test harness | core-business-service | BE | DONE |
+| SCM-EP1-US02 | Tenant registration with company prefix, headquarters GLN, and first admin | core-business-service | BE | DONE |
+| SCM-EP1-US03 | Authentication: login, EdDSA access tokens, rotating refresh tokens, logout, JWKS, rate limiting | core-business-service | BE | DONE |
+| SCM-EP1-US04 | User management and own-password change | core-business-service | BE | DONE |
+| SCM-EP1-US05 | Access control policy function (per-action party, role, state, and context) | core-business-service | BE | DONE |
 | SCM-EP1-US06 | Registration, login, BFF session, user management, and settings screens | enterprise-dashboard | FE | TODO |
 
 ### EP2 — GS1 warehouse and transport management
 
 | ID | Story | Repos | Owner | Status |
 | --- | --- | --- | --- | --- |
-| SCM-EP2-US01 | GS1 library: Modulo 10, key validation with prefix ownership, SSCC issuance | core-business-service | BE | TODO |
-| SCM-EP2-US02 | Location catalog (GLN, geo-fence) and GLN/tenant directory lookups | core-business-service | BE | TODO |
-| SCM-EP2-US03 | Product catalog (GTIN-14, temperature bounds) | core-business-service | BE | TODO |
-| SCM-EP2-US04 | Lot commissioning and inventory ledger (balances, movements) | core-business-service | BE | TODO |
-| SCM-EP2-US05 | Shipment event log (RFC 8785, hash chain), outbox relay to `shipment.events`, integrity endpoint | core-business-service | BE | TODO |
-| SCM-EP2-US06 | Shipment creation (SSCC, participants, snapshots, allocation), carrier and driver assignment, cancellation | core-business-service | BE | TODO |
-| SCM-EP2-US07 | Pickup handover: pickup code issuance and confirmation with SSCC scan and origin geo-fence | core-business-service | BE | TODO |
-| SCM-EP2-US08 | Transit checkpoints and delivery confirmation with destination geo-fence | core-business-service | BE | TODO |
-| SCM-EP2-US09 | Emergency lot recall across tenants with operational lock | core-business-service | BE | TODO |
+| SCM-EP2-US01 | GS1 library: Modulo 10, key validation with prefix ownership, SSCC issuance | core-business-service | BE | DONE |
+| SCM-EP2-US02 | Location catalog (GLN, geo-fence) and GLN/tenant directory lookups | core-business-service | BE | DONE |
+| SCM-EP2-US03 | Product catalog (GTIN-14, temperature bounds) | core-business-service | BE | DONE |
+| SCM-EP2-US04 | Lot commissioning and inventory ledger (balances, movements) | core-business-service | BE | DONE |
+| SCM-EP2-US05 | Shipment event log (RFC 8785, hash chain), outbox relay to `shipment.events`, integrity endpoint | core-business-service | BE | DONE |
+| SCM-EP2-US06 | Shipment creation (SSCC, participants, snapshots, allocation), carrier and driver assignment, cancellation | core-business-service | BE | DONE |
+| SCM-EP2-US07 | Pickup handover: pickup code issuance and confirmation with SSCC scan and origin geo-fence | core-business-service | BE | DONE |
+| SCM-EP2-US08 | Transit checkpoints and delivery confirmation with destination geo-fence | core-business-service | BE | DONE |
+| SCM-EP2-US09 | Emergency lot recall across tenants with operational lock | core-business-service | BE | DONE |
 | SCM-EP2-US10 | Dashboard operations: overview, catalog, lots, inventory, shipments (create, assign, pickup code, delivery, cancel), recall, logistic label printing ([spec](frontend/enterprise-dashboard.md)) | enterprise-dashboard | FE | TODO |
 | SCM-EP2-US11 | PWA flows: driver assignments, pickup, checkpoints; dock receiving; offline read-only cache ([spec](frontend/driver-mobile-pwa.md)) | driver-mobile-pwa | FE | TODO |
+
+SCM-EP2-US01 was delivered with EP1, because tenant registration validates the headquarters GLN against the
+company prefix.
 
 ### EP3 — Real-time cold-chain monitoring
 
 | ID | Story | Repos | Owner | Status |
 | --- | --- | --- | --- | --- |
-| SCM-EP3-US01 | IoT fleet simulator with scripted scenarios (normal, short excursion, sustained breach, sensor gap) | platform-infrastructure | BE | TODO |
-| SCM-EP3-US02 | MQTT ingestion (shared subscription, validation) → `iot.telemetry.raw` | telemetry-stream-service | BE | TODO |
-| SCM-EP3-US03 | Reading persistence: hypertable, idempotent batch insert, 15-minute continuous aggregate, dead-letter topic | telemetry-stream-service | BE | TODO |
-| SCM-EP3-US04 | Shipment projection from `shipment.events` | telemetry-stream-service | BE | TODO |
-| SCM-EP3-US05 | Breach detection engine: episodes, incidents with hashes, `telemetry.incidents` | telemetry-stream-service | BE | TODO |
-| SCM-EP3-US06 | WebSocket notification hub: breaches, recalls, live reading subscriptions | telemetry-stream-service | BE | TODO |
-| SCM-EP3-US07 | Telemetry read API: readings and incidents | telemetry-stream-service | BE | TODO |
+| SCM-EP3-US01 | IoT fleet simulator with scripted scenarios (normal, short excursion, sustained breach, sensor gap) | platform-infrastructure | BE | DONE |
+| SCM-EP3-US02 | MQTT ingestion (shared subscription, validation) → `iot.telemetry.raw` | telemetry-stream-service | BE | DONE |
+| SCM-EP3-US03 | Reading persistence: hypertable, idempotent batch insert, 15-minute continuous aggregate, dead-letter topic | telemetry-stream-service | BE | DONE |
+| SCM-EP3-US04 | Shipment projection from `shipment.events` | telemetry-stream-service | BE | DONE |
+| SCM-EP3-US05 | Breach detection engine: episodes, incidents with hashes, `telemetry.incidents` | telemetry-stream-service | BE | DONE |
+| SCM-EP3-US06 | WebSocket notification hub: breaches, recalls, live reading subscriptions | telemetry-stream-service | BE | DONE |
+| SCM-EP3-US07 | Telemetry read API: readings and incidents | telemetry-stream-service | BE | DONE |
 | SCM-EP3-US08 | Live temperature charts and alert center | enterprise-dashboard, driver-mobile-pwa | FE | TODO |
 
 ---

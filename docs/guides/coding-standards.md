@@ -29,6 +29,8 @@
   - table-driven;
   - `package x_test` for black-box tests of exported behavior;
   - integration tests behind `//go:build integration`, using `testcontainers-go`;
+  - isolation tests for every tenant-scoped table and security-definer function, run as the runtime role
+    ([ADR-0002](../adr/0002-multi-party-tenancy-with-row-level-security.md));
   - no sleeps for synchronization: use channels, `eventually` helpers with deadlines, or injected
     clocks.
 - **Naming:** packages are short, lower-case nouns (`shipment`, `gs1`, `tenancy`). Avoid `util`,
@@ -39,7 +41,7 @@
 - Conventions follow [data-model.md §1](../architecture/data-model.md#1-conventions).
 - Keywords in upper case, identifiers in lower `snake_case`, one column per line in DDL.
 - Every table with tenant data has RLS enabled in the migration that creates it, together with its
-  policies and grants.
+  policies and grants ([data-model.md §3.6](../architecture/data-model.md#36-row-level-security-policies)).
 - `sqlc` query files live next to their repository (`internal/<domain>/queries/*.sql`). Queries are named
   `VerbNoun` (`GetShipmentByID`, `ListLotsByProduct`).
 - Never build SQL by string concatenation. Session settings use `set_config($1, $2, true)`.

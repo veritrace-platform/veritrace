@@ -47,6 +47,11 @@ Payload (compact, because it is sent by constrained devices):
 
 The device ID is taken from the topic, never from the payload.
 
+Ingestion acknowledges a message only after Kafka has acknowledged its reading, and keeps its MQTT session
+across restarts, so the broker redelivers what was not acknowledged. A reading delivered twice is stored once.
+A reading that breaks a rule of [cold-chain-monitoring.md §2](../domain/cold-chain-monitoring.md#2-reading-validation)
+is acknowledged, counted, and logged, but not forwarded.
+
 ---
 
 ## 2. Kafka: conventions
@@ -66,7 +71,10 @@ The device ID is taken from the topic, never from the payload.
 | `shipment.events` | `sscc` | 6 | unlimited | core (outbox relay) | telemetry projection, relayer (M2) |
 | `telemetry.incidents` | `sscc` | 6 | unlimited | telemetry processor | relayer (M2) |
 
-Consumer group IDs follow `<service>.<purpose>`, for example `telemetry-stream-service.projection`.
+Consumer group IDs follow `<service>.<purpose>`: `telemetry-stream-service.processor` reads
+`iot.telemetry.raw`, and `telemetry-stream-service.projection` reads `shipment.events`. Consumers commit
+offsets only after a batch is processed, so a batch may be processed again after a crash; processing is
+idempotent.
 
 ### 2.1 Domain event envelope
 
@@ -133,7 +141,8 @@ Payload (`data`) per event type. All events are `event_version` 1.
 }
 ```
 
-**`shipment.participant_added`**: `{ "tenant_id": "uuid", "role": "CARRIER" | "INSPECTOR" }`
+**`shipment.participant_added`**: `{ "tenant_id": "uuid", "role": "CARRIER" | "INSPECTOR" }`. A new `CARRIER`
+replaces the owner, which carried the shipment until then, and ends any driver assignment.
 
 **`shipment.driver_assigned`**: `{ "driver_user_id": "uuid" }`
 
@@ -197,7 +206,16 @@ data rather than domain events.
 }
 ```
 
-`iot.telemetry.dlq` wraps a failed record as `{ "error": "…", "failed_at": "…", "record": { … } }`.
+- Values are rounded to the precision that the database stores: two decimals for temperature and humidity,
+  six for coordinates. `humidity_percent` is `null` when the device has no humidity sensor.
+- Timestamps carry milliseconds, the precision of device clocks.
+- Headers are `traceparent` (a new trace per reading) and `content-type`. Raw readings are not domain
+  events, so they carry no `event-type`.
+
+`iot.telemetry.dlq` wraps a record that the processor cannot store as
+`{ "error": "…", "failed_at": "…", "record": { … } }`, with the original key and a span in the original trace.
+`record` is the original value, or a JSON string when the value is not JSON. A record that fails validation is
+dead-lettered at once; a reading that the database refuses is tried three more times first.
 
 ---
 
@@ -224,7 +242,8 @@ Envelope from §2.1 with `producer = "telemetry-stream-service"` and `actor = nu
 }
 ```
 
-`incident_hash` is the SHA-256 of the RFC 8785 canonical JSON of this object without `incident_hash`.
+`incident_hash` is the SHA-256 of the RFC 8785 canonical JSON of this object without `incident_hash`
+([test vectors](test-vectors/incident-hash.json)). Times in incident data are device times with milliseconds.
 
 **`cold_chain.breach_resolved`**
 
@@ -237,6 +256,14 @@ Envelope from §2.1 with `producer = "telemetry-stream-service"` and `actor = nu
   "extreme_temperature_celsius": 11.2
 }
 ```
+
+- `occurred_at` is `confirmed_at` or `ended_at`, and `subject.status` is the shipment's status at that point.
+- `ended_at` is the first reading back in bounds, the last reading before a gap, or the last reading before the
+  shipment stopped being monitored ([cold-chain-monitoring.md §4](../domain/cold-chain-monitoring.md#4-breach-rule)).
+  `duration_seconds` counts whole seconds from `started_at`.
+- `event_id` and `incident_id` are derived from the incident, so an event produced again after a failure is
+  identical to the first and consumers can drop it. Records carry the `traceparent` of the reading or shipment
+  event that caused them.
 
 ---
 
@@ -251,6 +278,16 @@ Envelope from §2.1 with `producer = "telemetry-stream-service"` and `actor = nu
 | Heartbeat | Server ping every 30 s; the connection is closed if no pong arrives within 10 s |
 | Token expiry | The server closes the connection with `4401` at token expiry; the client reconnects with a fresh token |
 | Close codes | `4400` bad message, `4401` unauthenticated or expired, `4403` forbidden subscription, `4408` too many subscriptions (max 20), `1001` server shutdown |
+| Delivery | Every instance reads `telemetry.incidents`, `shipment.events`, and `iot.telemetry.raw` from the end, in a consumer group of its own, and delivers to its own connections ([ADR-0012](../adr/0012-cold-chain-detection-engine.md)). Nothing is replayed after a reconnect: clients read the current state through the REST API. |
+
+The handshake is refused before the upgrade with `400` when `veritrace.v1` is not offered and with `403` for
+another origin. After the upgrade:
+
+- A missing, invalid, or expired token closes the connection with `4401`, so the client refreshes its token
+  and reconnects. The server closes with `1013` while tokens cannot be verified (core's keys are unreachable).
+- A frame that is not a JSON text message of at most 4 KiB closes the connection with `4400`, or with `1009` when it
+  exceeds 64 KiB.
+- A connection that falls more than 256 messages behind is closed with `1008`; the client reconnects.
 
 ### 6.1 Server → client
 
@@ -269,6 +306,10 @@ Every message:
 | `subscribed` / `unsubscribed` | requester | `{ "channel": "telemetry", "sscc": "…" }` |
 | `error` | requester | `{ "code": "FORBIDDEN" \| "NOT_FOUND" \| "INVALID_MESSAGE", "message": "…" }` |
 
+For breaches and recalls, `id` is the `event_id` of the Kafka event, so a client can drop a repeated message.
+The telemetry service's OpenAPI document describes these messages as the `NotificationMessage` and
+`ClientMessage` schemas, so clients can generate their types.
+
 ### 6.2 Client → server
 
 ```json
@@ -277,4 +318,11 @@ Every message:
 ```
 
 Subscriptions are allowed only for shipments that the caller may view
-([access-control.md](../domain/access-control.md)).
+([access-control.md](../domain/access-control.md)):
+
+- A malformed message, an unknown `type` or `channel`, or an invalid SSCC answers `error` `INVALID_MESSAGE`.
+- A shipment that the telemetry service does not know, or in which the caller's tenant takes no part, answers
+  `error` `NOT_FOUND`. The connection stays open; the projection may not have the shipment yet.
+- A visible shipment that a driver is not assigned to answers `error` `FORBIDDEN`, and the connection closes
+  with `4403`.
+- Following the same SSCC again is not another subscription; a 21st one closes the connection with `4408`.

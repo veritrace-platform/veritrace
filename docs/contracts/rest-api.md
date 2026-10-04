@@ -26,8 +26,9 @@ Request and response schemas live in each service's OpenAPI document, which is t
 | Commands | State-changing actions are `POST` sub-resources (for example `/shipments/{id}/pickup`) that return the updated resource |
 | Partial update | `PATCH` with a JSON merge patch (RFC 7396) of the mutable fields |
 | Tracing | Clients may send `traceparent`. Every response carries `X-Trace-Id`. |
+| Caching | Responses carry `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`, so no cache keeps tenant data. The JWKS may be cached for 5 minutes. A `405` lists the supported methods in `Allow`. |
 | Limits | JSON bodies up to 1 MiB. Document uploads up to 25 MiB (M2). |
-| Rate limits | Login and registration: 10/min per IP. Public endpoints: 60/min per IP. `429` responses include `Retry-After`. |
+| Rate limits | Login and registration: 10/min per IP. Public endpoints: 60/min per IP. `429` responses include `Retry-After`. The client address is read from `X-Forwarded-For` behind the proxies listed in `TRUSTED_PROXIES` (the gateway and the frontend servers). |
 
 ### 1.1 Errors (RFC 9457 Problem Details)
 
@@ -78,6 +79,24 @@ Clients branch on `code`, never on `detail` or `title`.
 | `INTERNAL_ERROR` | 500 | Unexpected failure (details only in logs, correlated by `trace_id`) |
 | `SERVICE_UNAVAILABLE` | 503 | Dependency down or shutting down |
 
+Each entry of `errors[]` has its own `code`:
+
+| Field code | Meaning |
+| --- | --- |
+| `REQUIRED` | Missing or empty |
+| `INVALID_FORMAT` | Does not match the expected format (pattern, email address, phone number) |
+| `INVALID_TYPE` | Wrong JSON type |
+| `INVALID_VALUE` | Not one of the allowed values |
+| `TOO_SHORT`, `TOO_LONG` | Length outside the limits |
+| `OUT_OF_RANGE` | Number outside the limits |
+| `UNKNOWN_FIELD` | Not part of the request schema |
+| `ALREADY_REGISTERED` | A unique value that another record holds (with `409 IDENTIFIER_ALREADY_REGISTERED`) |
+| `INCORRECT` | Does not match the stored value, such as the current password |
+| `LENGTH`, `NON_NUMERIC`, `CHECK_DIGIT`, `PREFIX_MISMATCH` | GS1 key errors ([gs1-identifiers.md](../domain/gs1-identifiers.md#validation-rules)) |
+
+`422 INVALID_GS1_IDENTIFIER` is returned when only GS1 keys are invalid. When other fields are invalid too,
+`400 VALIDATION_FAILED` lists every error, GS1 keys included. Text fields are trimmed; passwords are not.
+
 ## 2. Gateway routing
 
 The API listener (`:8000` locally, `api.<domain>` in cloud mode) and each local frontend listener share
@@ -106,19 +125,19 @@ Roles and parties follow [access-control.md](../domain/access-control.md).
 | `GET` | `/.well-known/jwks.json` | public | Token verification keys |
 | `GET` | `/api/v1/me` | bearer | Current user and tenant summary |
 | `POST` | `/api/v1/me/password` | bearer | Change own password (revokes other sessions) |
-| `GET`, `PATCH` | `/api/v1/tenant` | bearer | Read or update own tenant profile |
-| `GET`, `POST` | `/api/v1/users` | ADMIN | List (filter: `role`, `is_active`) or create users |
+| `GET`, `PATCH` | `/api/v1/tenant` | ADMIN | Read or update own tenant profile |
+| `GET`, `POST` | `/api/v1/users` | ADMIN | List (filter: `role`, `is_active`) or create users. WAREHOUSE_MANAGER may list with `role=DRIVER`. |
 | `GET`, `PATCH` | `/api/v1/users/{user_id}` | ADMIN | Read or update a user (name, phone, role, `is_active`) |
 | `GET` | `/api/v1/directory/locations/{gln}` | bearer | Resolve any tenant's GLN to its public fields |
 | `GET` | `/api/v1/directory/tenants/{code}` | bearer | Resolve a tenant code (carrier or inspector selection) |
-| `GET`, `POST` | `/api/v1/locations` | bearer | List or create locations |
+| `GET`, `POST` | `/api/v1/locations` | bearer | List (filter: `is_active`) or create locations |
 | `GET`, `PATCH` | `/api/v1/locations/{location_id}` | bearer | Read or update a location |
-| `GET`, `POST` | `/api/v1/products` | bearer | List (filter: `q`, `is_active`) or create products |
+| `GET`, `POST` | `/api/v1/products` | bearer | List (filter: `q` on name or GTIN, `is_active`) or create products |
 | `GET`, `PATCH` | `/api/v1/products/{product_id}` | bearer | Read or update a product |
 | `GET`, `POST` | `/api/v1/lots` | bearer | List (filter: `product_id`, `status`) or commission lots |
 | `GET` | `/api/v1/lots/{lot_id}` | bearer | Read a lot |
 | `POST` | `/api/v1/lots/{lot_id}/recall` | ADMIN | Emergency recall; returns the recall and the affected shipment count |
-| `GET` | `/api/v1/inventory` | bearer | Balances (filter: `location_id`, `lot_id`) |
+| `GET` | `/api/v1/inventory` | bearer | Balances above zero (filter: `location_id`, `lot_id`) |
 | `GET`, `POST` | `/api/v1/shipments` | bearer | List (filter: `status`, `party`, `sscc`, `lot_id`, `assigned_to_me`) or create shipments |
 | `GET` | `/api/v1/shipments/summary` | bearer | Counts of the caller's visible shipments by status: `{created, in_transit, delivered, cancelled, recalled}` |
 | `GET` | `/api/v1/shipments/{shipment_id}` | bearer | Read a shipment, including participants |
@@ -149,7 +168,7 @@ Roles and parties follow [access-control.md](../domain/access-control.md).
 
 | Milestone | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- | --- |
-| M1 | `GET` | `/api/v1/telemetry/shipments/{sscc}/readings` | bearer | Readings in `[from, to)`. `resolution` is `raw` (max 6 h window), `1m`, or `15m`. |
+| M1 | `GET` | `/api/v1/telemetry/shipments/{sscc}/readings` | bearer | Readings in `[from, to)`. `resolution` is `raw` (max 6 h window), `1m` (max 7 days), or `15m` (max 90 days); `to` defaults to now and `from` to 1 h, 1 day, or 7 days before it. Oldest first, not paged. |
 | M1 | `GET` | `/api/v1/telemetry/shipments/{sscc}/incidents` | bearer | Incidents of one shipment |
 | M1 | `GET` | `/api/v1/telemetry/incidents` | bearer | Incidents across the caller's shipments (filter: `state=open\|resolved`) |
 | M1 | `GET` | `/api/v1/telemetry/incidents/summary` | bearer | `{open_count, last_24h_count}` for the caller's shipments |
@@ -171,5 +190,5 @@ These endpoints are never routed through the gateway.
 | Path | Purpose |
 | --- | --- |
 | `GET /healthz` | Liveness: the process is serving |
-| `GET /readyz` | Readiness: dependencies (database, brokers) reachable |
+| `GET /readyz` | Readiness: the dependencies the service needs to serve requests are reachable. core: PostgreSQL (the outbox buffers events while Kafka is down). telemetry: PostgreSQL, Kafka, core's token keys, and, with the ingest component, the MQTT subscription. |
 | `GET /metrics` | Prometheus exposition |

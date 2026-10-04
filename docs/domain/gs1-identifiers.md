@@ -26,11 +26,14 @@ service and client validates these keys with the same rules.
   The indicator digit is `0` for a base unit and `1`–`8` for packaging levels.
 - A lot number matches `^[0-9A-Za-z._-]{1,20}$`. This is a URL-safe subset of the GS1 AI 10 character
   set, so lot numbers can appear in Digital Link paths without escaping.
-- A GCP matches `^[0-9]{6,10}$` and is unique across tenants. VeriTrace does not verify GCP ownership with
-  GS1. That check is an onboarding procedure outside the system.
+- A GCP matches `^[0-9]{6,10}$` and is unique across tenants. It also must not extend, or be extended by,
+  another tenant's GCP: GS1 assigns prefixes so that none is a prefix of another, and overlapping prefixes
+  would let two tenants claim the same keys. VeriTrace does not verify GCP ownership with GS1. That check is
+  an onboarding procedure outside the system.
 
 Invalid identifiers are rejected with HTTP 422 and error code `INVALID_GS1_IDENTIFIER`. The error lists the
-reason, which is one of `LENGTH`, `NON_NUMERIC`, `CHECK_DIGIT`, or `PREFIX_MISMATCH`.
+reason, which is one of `LENGTH`, `NON_NUMERIC`, `CHECK_DIGIT`, or `PREFIX_MISMATCH`. The checks run in that
+order and the first failure is reported, so every implementation gives the same reason for the same key.
 
 ## 2. Check digit (GS1 Modulo 10)
 
@@ -67,8 +70,9 @@ SSCC = extension digit (tenant setting, default 0)
 
 - Serial references come from a per-tenant counter that is incremented atomically in the same
   transaction that creates the shipment. They are never reused, including for cancelled shipments.
-- The serial space is `10^(16 − len(GCP))`. When it is exhausted, issuance fails with `409 CONFLICT`,
-  and the tenant must change its extension digit.
+- The serial space is `10^(16 − len(GCP))`. When it is exhausted, issuance fails with
+  `409 SSCC_SERIAL_EXHAUSTED`, and the tenant must change its extension digit. A new digit starts a new
+  serial space at 1. A digit that issued SSCCs before cannot be chosen again, so SSCCs never repeat.
 
 ### 3.1 SSCC on logistic labels
 

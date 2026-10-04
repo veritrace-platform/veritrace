@@ -38,6 +38,12 @@ forwards to them. Always open the gateway port.
 The access token is held in memory only. Tokens never go to `localStorage`, `sessionStorage`, or
 non-`HttpOnly` cookies.
 
+Login and refresh return the same `Session` body: `access_token` with `expires_in` (seconds), the new
+`refresh_token` with `refresh_token_expires_in` (the cookie's `Max-Age`), and `user`, the same object as
+`GET /api/v1/me`. When the BFF calls login, refresh, and logout, it forwards the browser's address in
+`X-Forwarded-For` and the browser's `User-Agent`, so rate limits and session records describe the browser
+rather than the frontend server.
+
 The public portal has no session. It renders on the server with `API_BASE_URL`.
 
 ## 4. Errors
@@ -57,4 +63,31 @@ Every error is `application/problem+json` with a stable `code`
   [gs1-identifiers.md §3.1](../domain/gs1-identifiers.md#31-sscc-on-logistic-labels).
 - **Positions:** handover actions send `{latitude, longitude, accuracy_meters}` from high-accuracy
   geolocation.
+- **Event log:** `GET /shipments/{id}/integrity` verifies the chain on the server. A client that recomputes
+  hashes itself canonicalizes with RFC 8785, tested with
+  [`canonical-json.json`](../contracts/test-vectors/canonical-json.json) and
+  [`shipment-events.json`](../contracts/test-vectors/shipment-events.json).
 - **Recall:** a `shipment.recalled` notification blocks further actions on that shipment in every UI.
+- **Incidents:** an incident whose `incident_hash` a client checks is canonicalized the same way, tested with
+  [`incident-hash.json`](../contracts/test-vectors/incident-hash.json).
+
+## 6. Real-time and telemetry
+
+- WebSocket message types are in the telemetry OpenAPI document (`NotificationMessage`, `ClientMessage`), so
+  they can be generated like the REST types. Breach and recall messages carry the Kafka `event_id` as `id`;
+  drop a message whose `id` was seen.
+- Close codes: on `4401`, refresh the session and reconnect. On `4403`, do not subscribe to that SSCC again.
+  `4408` means more than 20 subscriptions. On `1001`, `1008`, `1013`, or a network error, reconnect with
+  backoff. After every reconnect, re-subscribe and refetch the affected queries: messages sent while
+  disconnected are not replayed.
+- Charts read `GET /api/v1/telemetry/shipments/{sscc}/readings`: `raw` for a live view of up to 6 hours, then
+  `1m` or `15m` for longer ranges, and append `telemetry.reading` messages while subscribed. Bounds come from
+  the shipment's product (`GET /shipments/{id}`).
+- The IoT fleet simulator produces readings for a shipment's SSCC
+  ([development-setup.md §4](development-setup.md#4-backend-workflow-go-on-the-host)).
+
+## 7. Demo data
+
+`make seed` in `platform-infrastructure` creates four companies with an account for every role, locations,
+products, and lots ([development-setup.md §5](development-setup.md#5-demonstration-kit)). `make demo` then runs a
+shipment through every screen-worthy state, which is a quick way to fill lists, timelines, and the alert center.
