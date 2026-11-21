@@ -49,7 +49,9 @@ command. The frontend developer should not need a Go toolchain to get a working 
 - **Workstation safety:**
   - Host ports bind to `127.0.0.1` only, so databases are never exposed to the local network.
   - Every container has a memory limit.
-  - Containers restart after a crash (`on-failure`) but do **not** start automatically with Docker.
+  - Containers never restart on their own (`restart: "no"`): neither after a crash nor when Docker starts.
+    The `on-failure` policy was dropped because Docker also applies it when the daemon starts, so a container
+    that was killed by a Docker or WSL shutdown (non-zero exit code) came back up with the machine.
   - Ports are configurable in `.env` (`POSTGRES_HOST_PORT`, `KAFKA_HOST_PORT`, …) for machines that
     already run other stacks on the default ports.
 - Every repository ships a `.env.example`. Real `.env` files are never committed.
