@@ -48,7 +48,9 @@ Payload (compact, because it is sent by constrained devices):
 The device ID is taken from the topic, never from the payload.
 
 Ingestion acknowledges a message only after Kafka has acknowledged its reading, and keeps its MQTT session
-across restarts, so the broker redelivers what was not acknowledged. A reading delivered twice is stored once.
+across restarts, so the broker redelivers what was not acknowledged. The broker queues up to 50 000 unacknowledged
+readings for the ingest subscription, so a burst, such as the backlog that devices upload after an outage, is not
+dropped. A reading delivered twice is stored once.
 A reading that breaks a rule of [cold-chain-monitoring.md §2](../domain/cold-chain-monitoring.md#2-reading-validation)
 is acknowledged, counted, and logged, but not forwarded.
 
@@ -70,6 +72,7 @@ is acknowledged, counted, and logged, but not forwarded.
 | `iot.telemetry.dlq` | `sscc` | 1 | 14 days | telemetry processor | operators |
 | `shipment.events` | `sscc` | 6 | unlimited | core (outbox relay) | telemetry projection, relayer (M2) |
 | `telemetry.incidents` | `sscc` | 6 | unlimited | telemetry processor | relayer (M2) |
+| `telemetry.forecasts` | `sscc` | 6 | 7 days | telemetry processor and projection | telemetry notification hub |
 
 Consumer group IDs follow `<service>.<purpose>`: `telemetry-stream-service.processor` reads
 `iot.telemetry.raw`, and `telemetry-stream-service.projection` reads `shipment.events`. Consumers commit
@@ -78,7 +81,7 @@ idempotent.
 
 ### 2.1 Domain event envelope
 
-`shipment.events` and `telemetry.incidents` share this envelope:
+`shipment.events`, `telemetry.incidents`, and `telemetry.forecasts` share this envelope:
 
 ```json
 {
@@ -104,7 +107,7 @@ idempotent.
 ```
 
 - `sequence`, `prev_event_hash`, and `event_hash` are present on shipment events only. Incidents carry
-  `data.incident_hash` instead.
+  `data.incident_hash` instead, and forecasts carry no hash.
 - `actor` is `null` for system-produced events.
 
 **Hash input:** RFC 8785 canonical JSON of the object
@@ -126,10 +129,12 @@ Payload (`data`) per event type. All events are `event_version` 1.
   "gtin": "08930001000018",
   "product_name": "Pasteurized Fresh Milk 1L",
   "lot_number": "LOT-2026-0901",
+  "production_date": "2026-09-01",
   "expiration_date": "2026-09-15",
   "quantity": 480,
   "min_temp_celsius": 2.0,
   "max_temp_celsius": 8.0,
+  "shelf_life_q10": 3.0,
   "origin": { "location_id": "uuid", "gln": "8930001001015", "name": "Binh Duong DC" },
   "destination": { "location_id": "uuid", "gln": "8934567000017", "name": "District 7 Store Hub" },
   "participants": [
@@ -140,6 +145,10 @@ Payload (`data`) per event type. All events are `event_version` 1.
   "assigned_driver_id": null
 }
 ```
+
+`production_date` and `shelf_life_q10` are snapshots of the lot, like the bounds
+([cold-chain-monitoring.md §8](../domain/cold-chain-monitoring.md#8-thermal-exposure-and-shelf-life)). Events
+produced before they were added lack them; consumers treat them as unknown.
 
 **`shipment.participant_added`**: `{ "tenant_id": "uuid", "role": "CARRIER" | "INSPECTOR" }`. A new `CARRIER`
 replaces the owner, which carried the shipment until then, and ends any driver assignment.
@@ -278,7 +287,7 @@ Envelope from §2.1 with `producer = "telemetry-stream-service"` and `actor = nu
 | Heartbeat | Server ping every 30 s; the connection is closed if no pong arrives within 10 s |
 | Token expiry | The server closes the connection with `4401` at token expiry; the client reconnects with a fresh token |
 | Close codes | `4400` bad message, `4401` unauthenticated or expired, `4403` forbidden subscription, `4408` too many subscriptions (max 20), `1001` server shutdown |
-| Delivery | Every instance reads `telemetry.incidents`, `shipment.events`, and `iot.telemetry.raw` from the end, in a consumer group of its own, and delivers to its own connections ([ADR-0012](../adr/0012-cold-chain-detection-engine.md)). Nothing is replayed after a reconnect: clients read the current state through the REST API. |
+| Delivery | Every instance reads `telemetry.incidents`, `telemetry.forecasts`, `shipment.events`, and `iot.telemetry.raw` from the end, in a consumer group of its own, and delivers to its own connections ([ADR-0012](../adr/0012-cold-chain-detection-engine.md)). Nothing is replayed after a reconnect: clients read the current state through the REST API. |
 
 The handshake is refused before the upgrade with `400` when `veritrace.v1` is not offered and with `403` for
 another origin. After the upgrade:
@@ -301,12 +310,16 @@ Every message:
 | --- | --- | --- |
 | `cold_chain.breach_confirmed` | participants and the assigned driver | §5 payload plus `product_name` and `gtin` |
 | `cold_chain.breach_resolved` | same | §5 payload |
+| `cold_chain.warning_issued` | same | §7 payload plus `product_name` and `gtin` |
+| `cold_chain.warning_closed` | same | §7 payload |
+| `cold_chain.shelf_life_reduced` | same | §7 payload |
 | `shipment.recalled` | participants of the recalled shipment | `{shipment_id, sscc, recall_id, gtin, lot_number, product_name, reason}` |
 | `telemetry.reading` | subscribers of the SSCC | §4 payload without `received_at` |
 | `subscribed` / `unsubscribed` | requester | `{ "channel": "telemetry", "sscc": "…" }` |
 | `error` | requester | `{ "code": "FORBIDDEN" \| "NOT_FOUND" \| "INVALID_MESSAGE", "message": "…" }` |
 
-For breaches and recalls, `id` is the `event_id` of the Kafka event, so a client can drop a repeated message.
+For breaches, warnings, shelf-life alerts, and recalls, `id` is the `event_id` of the Kafka event, so a client can
+drop a repeated message.
 The telemetry service's OpenAPI document describes these messages as the `NotificationMessage` and
 `ClientMessage` schemas, so clients can generate their types.
 
@@ -326,3 +339,74 @@ Subscriptions are allowed only for shipments that the caller may view
 - A visible shipment that a driver is not assigned to answers `error` `FORBIDDEN`, and the connection closes
   with `4403`.
 - Following the same SSCC again is not another subscription; a 21st one closes the connection with `4408`.
+
+---
+
+## 7. Kafka topic `telemetry.forecasts`
+
+Model estimates about a shipment's cold chain: excursion warnings
+([cold-chain-monitoring.md §7](../domain/cold-chain-monitoring.md#7-excursion-warnings)) and shelf-life alerts
+([§8](../domain/cold-chain-monitoring.md#8-thermal-exposure-and-shelf-life)). Unlike incidents, they are advisory
+and not anchored on chain ([ADR-0023](../adr/0023-predictive-excursion-warnings.md)). Envelope from §2.1 with
+`producer = "telemetry-stream-service"` and `actor = null`; `subject.status` is the shipment's status at that point.
+
+**`cold_chain.warning_issued`**: `occurred_at` is `issued_at`.
+
+```json
+{
+  "warning_id": "uuid",
+  "shipment_id": "uuid",
+  "sscc": "089300010000000018",
+  "device_id": "REEFER-0001",
+  "issued_at": "2026-09-01T14:26:40.000Z",
+  "bound": "MAX",
+  "bound_celsius": 8.0,
+  "temperature_celsius": 6.4,
+  "slope_celsius_per_minute": 0.62,
+  "predicted_excursion_at": "2026-09-01T14:29:15.000Z"
+}
+```
+
+- `bound` is `MAX` for a rising temperature and `MIN` for a falling one; `bound_celsius` is its value.
+- `temperature_celsius` is the reading that issued the warning, and `slope_celsius_per_minute` the fitted slope,
+  rounded to three decimals.
+
+**`cold_chain.warning_closed`**: `occurred_at` is `closed_at`.
+
+```json
+{
+  "warning_id": "uuid",
+  "sscc": "089300010000000018",
+  "closed_at": "2026-09-01T14:30:30.000Z",
+  "outcome": "BREACHED",
+  "incident_id": "uuid",
+  "lead_time_seconds": 200
+}
+```
+
+`outcome` is `BREACHED`, `CLEARED`, or `INCONCLUSIVE`. `incident_id` and `lead_time_seconds` are `null` unless it is
+`BREACHED`.
+
+**`cold_chain.shelf_life_reduced`**: `occurred_at` is `assessed_at`.
+
+```json
+{
+  "shipment_id": "uuid",
+  "sscc": "089300010000000018",
+  "status": "REDUCED",
+  "assessed_at": "2026-09-01T17:30:00.000Z",
+  "shelf_life_q10": 3.0,
+  "label_expiration_date": "2026-09-14",
+  "estimated_expiration_date": "2026-09-14",
+  "shelf_life_loss_hours": 10.97,
+  "shelf_life_loss_percent": 3.26,
+  "remaining_shelf_life_hours": 307.53
+}
+```
+
+`status` is `REDUCED` or `EXPIRED`. Hours and percentages are rounded to two decimals.
+
+- Times are device times with milliseconds, as for incidents.
+- `event_id` and `warning_id` are derived from the SSCC and `issued_at`; the event ID of a shelf-life alert is
+  derived from the SSCC and `status`. An event produced again after a failure is identical to the first.
+

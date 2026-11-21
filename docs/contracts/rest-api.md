@@ -172,6 +172,10 @@ Roles and parties follow [access-control.md](../domain/access-control.md).
 | M1 | `GET` | `/api/v1/telemetry/shipments/{sscc}/incidents` | bearer | Incidents of one shipment |
 | M1 | `GET` | `/api/v1/telemetry/incidents` | bearer | Incidents across the caller's shipments (filter: `state=open\|resolved`) |
 | M1 | `GET` | `/api/v1/telemetry/incidents/summary` | bearer | `{open_count, last_24h_count}` for the caller's shipments |
+| M1 | `GET` | `/api/v1/telemetry/shipments/{sscc}/warnings` | bearer | Excursion warnings of one shipment |
+| M1 | `GET` | `/api/v1/telemetry/warnings` | bearer | Excursion warnings across the caller's shipments (filter: `state=open\|closed`) |
+| M1 | `GET` | `/api/v1/telemetry/warnings/performance` | bearer | Forecast quality over `[from, to)` for the caller's shipments, optionally one `sscc`: warnings by outcome, precision, recall, lead time, and excursion time error ([cold-chain-monitoring.md §7.3](../domain/cold-chain-monitoring.md#73-forecast-quality)). `to` defaults to now and `from` to 7 days before it; at most 90 days. |
+| M1 | `GET` | `/api/v1/telemetry/shipments/{sscc}/thermal-exposure` | bearer | Thermal exposure (MKT, time and degree-minutes out of bounds) and shelf-life estimate ([cold-chain-monitoring.md §8](../domain/cold-chain-monitoring.md#8-thermal-exposure-and-shelf-life)) |
 | M1 | `GET` | `/ws/v1/notifications` | subprotocol | WebSocket ([messaging.md §6](messaging.md#6-websocket-real-time-notifications)) |
 | M2 | `GET` | `/api/v1/public/telemetry/shipments/{sscc}/summary` | public | 15-minute series and incident summary for the public timeline |
 

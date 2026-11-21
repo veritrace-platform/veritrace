@@ -4,7 +4,7 @@
 
 | Milestone | Theme | Epics | Status |
 | --- | --- | --- | --- |
-| **M1 — Operational Core** | Multi-tenant WMS/TMS on GS1 identifiers with real-time cold-chain monitoring | EP0–EP3 | In progress |
+| **M1 — Operational Core** | Multi-tenant WMS/TMS on GS1 identifiers with real-time and predictive cold-chain monitoring | EP0–EP3 | In progress |
 | **M2 — Decentralized Trust** | Encrypted documents, on-chain commitments, public verification, operations | EP4–EP7 | Planned |
 
 **Status values:** `TODO` · `IN_PROGRESS` · `BLOCKED` · `DONE`. A story is `DONE` when it meets the
@@ -73,6 +73,13 @@ company prefix.
 | SCM-EP3-US06 | WebSocket notification hub: breaches, recalls, live reading subscriptions | telemetry-stream-service | BE | DONE |
 | SCM-EP3-US07 | Telemetry read API: readings and incidents | telemetry-stream-service | BE | DONE |
 | SCM-EP3-US08 | Live temperature charts and alert center | enterprise-dashboard, driver-mobile-pwa | FE | TODO |
+| SCM-EP3-US09 | Excursion warnings: trend forecast, warning lifecycle with outcomes, `telemetry.forecasts`, notifications, warning API with forecast quality ([ADR-0023](adr/0023-predictive-excursion-warnings.md)) | telemetry-stream-service, platform-infrastructure | BE | DONE |
+| SCM-EP3-US10 | Thermal exposure and dynamic shelf life: product Q10, lot and shipment snapshots, exposure API (MKT, time and degree-minutes out of bounds), shelf-life alerts ([ADR-0024](adr/0024-thermal-exposure-and-dynamic-shelf-life.md)) | core-business-service, telemetry-stream-service | BE | DONE |
+| SCM-EP3-US11 | Simulator scenarios that build up (gradual warming, door opening, reefer failure), backdated replay, and a forecast evaluation run in the demonstration kit | platform-infrastructure | BE | DONE |
+| SCM-EP3-US12 | Warnings in the alert center and on the PWA; forecast quality and the thermal exposure card in the dashboard | enterprise-dashboard, driver-mobile-pwa | FE | TODO |
+
+SCM-EP3-US09 to US11 go beyond detection: the platform forecasts breaches before they happen and estimates what a
+breach cost the goods, and it measures the quality of its own forecasts.
 
 ---
 

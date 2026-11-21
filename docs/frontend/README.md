@@ -69,6 +69,8 @@ Use the same tokens in every application:
 | `RECALLED` | red | Recalled; locked |
 | Breach open | red | Cold-chain breach in progress |
 | Breach resolved | amber | Past excursion |
+| Warning open | amber | Excursion forecast within 10 minutes |
+| Shelf life `REDUCED` / `EXPIRED` | amber / red | Estimated shelf life shortened / used up |
 
 ## 4. Real-time client
 
@@ -79,7 +81,7 @@ Use the same tokens in every application:
 - It reconnects with exponential backoff (1 s up to 30 s, with jitter). On close code `4401` it first
   refreshes the session.
 - It re-subscribes to live telemetry channels after every reconnect.
-- It dispatches messages to TanStack Query: it invalidates affected shipment, incident, and lot queries,
+- It dispatches messages to TanStack Query: it invalidates affected shipment, incident, warning, and lot queries,
   and raises UI notifications.
 
 ## 5. Suggested CI checks
