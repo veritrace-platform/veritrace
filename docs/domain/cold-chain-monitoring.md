@@ -89,8 +89,9 @@ the breach rule of §4, and incidents never depend on them.
 
 ### 7.1 Forecast
 
-For each monitored SSCC, the detector keeps the readings of the last **2 minutes** (all devices, in device-time
-order) and fits a straight line `T = a + b·t` to them by ordinary least squares. The forecast at a reading is:
+For each monitored SSCC, the detector keeps the in-bounds readings of the last **2 minutes** (all devices, in
+device-time order) and fits a straight line `T = a + b·t` to them by ordinary least squares. The forecast at a
+reading is:
 
 - the **slope** `b` in °C per minute, and its t-statistic `b / SE(b)`;
 - the **fitted temperature** `T̂` at the reading's time;
@@ -99,7 +100,8 @@ order) and fits a straight line `T = a + b·t` to them by ordinary least squares
   excursion time, the reading's time plus `τ`.
 
 A forecast needs at least **12 readings spanning at least 60 seconds**. A gap longer than 15 seconds empties the
-window: as for episodes, missing data is not evidence of a trend.
+window: as for episodes, missing data is not evidence of a trend. A reading out of bounds empties it too, so the
+trend after an excursion is that of the readings since it ended, not a slope across the excursion.
 
 The **operating level** is the temperature that the reefer has been holding: where the SSCC's last **360 in-bounds
 readings** (30 minutes at the nominal interval) cluster most. It is the median of the readings within 0.5 °C of the
@@ -138,8 +140,8 @@ stateDiagram-v2
   warned bound, or whose time to excursion exceeds 20 minutes, the warning is closed as `CLEARED` at the third.
 - **Inconclusive:** when the shipment stops being monitored, an open warning is closed as `INCONCLUSIVE` at the
   last reading recorded until then.
-- Readings out of bounds neither issue nor clear a warning, and they restart both counts: the breach rule decides
-  what an excursion becomes. A gap restarts them too, and a warning stays open across a gap.
+- Readings out of bounds neither issue nor clear a warning, and they restart both counts and the window: the breach
+  rule decides what an excursion becomes. A gap restarts them too, and a warning stays open across a gap.
 
 ### 7.3 Forecast quality
 
