@@ -28,5 +28,7 @@ to `Superseded by ADR-XXXX`.
 | [0020](0020-frontend-stack.md) | Frontend stack | M1 + M2 |
 | [0021](0021-frontend-origin-and-session.md) | Frontend origin and session handling | M1 + M2 |
 | [0022](0022-driver-pwa-device-capabilities.md) | Driver PWA device capabilities | M1 |
+| [0023](0023-predictive-excursion-warnings.md) | Predictive excursion warnings | M1 |
+| [0024](0024-thermal-exposure-and-dynamic-shelf-life.md) | Thermal exposure and dynamic shelf life | M1 |
 
 New ADRs start from [the template](template.md). All ADRs above are `Accepted` unless marked otherwise.

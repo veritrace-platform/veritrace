@@ -24,7 +24,7 @@ Endpoints are relative to `/api/v1`; `telemetry/…` is served by the telemetry 
 | `/shipments/{id}/pickup` | Pickup wizard (§2.1) | `POST /shipments/{id}/pickup` | Driver | EP2-US11 |
 | `/shipments/{id}/checkpoint` | Checkpoint wizard (§2.2) | `GET /directory/locations/{gln}`, `POST /shipments/{id}/checkpoints` | Driver | EP2-US11 |
 | `/receive` | Dock receiving (§2.3) | `GET /shipments?sscc=`, `POST /shipments/{id}/delivery` | Dock receiver | EP2-US11 |
-| `/alerts` | Breach and recall notifications for my shipments | `GET telemetry/incidents` | all | EP3-US08 |
+| `/alerts` | Breach, warning, and recall notifications for my shipments | `GET telemetry/incidents`, `GET telemetry/warnings` | all | EP3-US08, EP3-US12 |
 | `/settings` | Language, app version, logout, and camera and location permission status with how to enable them | `POST /bff/session/logout` | all | EP2-US11 |
 
 ## 2. Flows
@@ -61,14 +61,16 @@ Endpoints are relative to `/api/v1`; `telemetry/…` is served by the telemetry 
 
 1. Scan the SSCC. The app looks it up (`GET /shipments?sscc=`), and it must be visible to the tenant as
    `CONSIGNEE`.
-2. Show a summary (product, lot, quantity, origin, carrier) and any cold-chain incidents, so the receiver
-   can inspect the goods before accepting.
+2. Show a summary (product, lot, quantity, origin, carrier), any cold-chain incidents, and the shelf-life
+   estimate (`GET telemetry/shipments/{sscc}/thermal-exposure`), so the receiver can inspect the goods before
+   accepting.
 3. Confirm location, then submit `POST /shipments/{id}/delivery`. The success screen shows `DELIVERED`.
 
 ## 3. Behavior
 
 - **Alerts:** `cold_chain.breach_confirmed` for my shipments and `shipment.recalled` trigger a
-  full-width banner, sound, and vibration. A recall replaces the shipment screen with a red "Do not
+  full-width banner, sound, and vibration. `cold_chain.warning_issued` shows an amber banner with the bound
+  and the time left, so the driver can check the reefer before the breach. A recall replaces the shipment screen with a red "Do not
   deliver; contact dispatch" state.
 - **Offline:** a banner appears when offline. Assignments and shipment cards come from the cache with a
   timestamp. Every action button is disabled until the connection returns.

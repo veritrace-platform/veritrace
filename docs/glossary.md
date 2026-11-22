@@ -24,6 +24,13 @@ Terms used across VeriTrace documentation, code, and APIs. Use them with exactly
 | **Excursion** | A temperature reading outside the product's `[min, max]` bounds. |
 | **Episode** | A continuous run of excursions for one SSCC, with no gap over 15 s. |
 | **Breach / incident** | An episode that lasted 30 s or more. It is recorded once as a cold-chain incident. |
+| **Excursion warning** | A forecast, from the temperature trend, that a shipment will leave its bounds within 10 minutes. Closed as `BREACHED`, `CLEARED`, or `INCONCLUSIVE`. |
+| **Lead time** | For a warning that a breach followed, the time from the warning to the start of the breach's episode. |
+| **Operating level** | What the reefer has been holding: where an SSCC's last 360 in-bounds readings cluster most (the densest 0.5 °C bin). |
+| **Thermal exposure** | A shipment's temperature history condensed: mean and mean kinetic temperature, time and degree-minutes out of bounds. |
+| **MKT** (mean kinetic temperature) | The single temperature with the same cumulative kinetic effect as a fluctuating history (USP <1079>). |
+| **Q10** | The factor by which a product's quality loss speeds up for every 10 °C of warming. |
+| **Dynamic shelf life** | Shelf life re-estimated from the actual temperature history instead of the printed date alone. |
 | **Shipment projection** | The telemetry service's local copy of shipment data (bounds, participants, status), built from events. |
 | **Event log** | The append-only, hash-chained list of a shipment's events. |
 | **Canonical JSON** | JSON serialized per RFC 8785 so identical data always hashes identically. |
