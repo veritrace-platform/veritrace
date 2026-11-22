@@ -31,7 +31,7 @@ flowchart LR
 
     mqtt --> stream
     core -->|shipment.events| kafka[(Kafka)]
-    stream -->|iot.telemetry.raw, telemetry.incidents| kafka
+    stream -->|iot.telemetry.raw, telemetry.incidents, telemetry.forecasts| kafka
     kafka -->|shipment.events| stream
     kafka -.->|shipment.events, telemetry.incidents| relayer
 
@@ -114,14 +114,16 @@ sequenceDiagram
     T->>K: iot.telemetry.raw (key = SSCC)
     K->>T: processor
     T->>DB: idempotent batch insert
-    T->>T: episode state machine
-    T->>DB: incident (on breach)
-    T->>K: telemetry.incidents
-    T->>UI: cold_chain.breach_confirmed (WebSocket, participants only)
+    T->>T: episode state machine and trend forecast
+    T->>DB: warning (forecast) or incident (on breach)
+    T->>K: telemetry.forecasts / telemetry.incidents
+    T->>UI: cold_chain.warning_issued / cold_chain.breach_confirmed (WebSocket, participants only)
 ```
 
 The rules are in [cold-chain-monitoring.md](../domain/cold-chain-monitoring.md), and the engine design is
-in [ADR-0012](../adr/0012-cold-chain-detection-engine.md).
+in [ADR-0012](../adr/0012-cold-chain-detection-engine.md). Excursion warnings forecast a breach minutes ahead
+([ADR-0023](../adr/0023-predictive-excursion-warnings.md)), and the thermal exposure of a shipment estimates the
+shelf life its goods lost ([ADR-0024](../adr/0024-thermal-exposure-and-dynamic-shelf-life.md)).
 
 ### 5.3 Emergency recall
 

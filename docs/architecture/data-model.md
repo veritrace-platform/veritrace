@@ -110,6 +110,7 @@ creates the roles and databases. Migrations create everything else.
 | `name` | text | |
 | `description` | text | nullable; 1–1000 characters |
 | `min_temp_celsius`, `max_temp_celsius` | numeric(5,2) | −50…80; min < max |
+| `shelf_life_q10` | numeric(4,2) | 1–10, default 3.00: how many times faster the goods age per 10 °C above `max_temp_celsius` ([cold-chain-monitoring.md §8](../domain/cold-chain-monitoring.md#8-thermal-exposure-and-shelf-life)) |
 | `is_active` | boolean | default true |
 | `created_at`, `updated_at` | timestamptz | |
 
@@ -121,7 +122,7 @@ deleted)
 | `id` | uuid | PK |
 | `tenant_id` | uuid | FK; owner (brand owner) |
 | `product_id` | uuid | FK `products` |
-| `gtin`, `product_name`, `min_temp_celsius`, `max_temp_celsius` | | Snapshot of the product at commissioning |
+| `gtin`, `product_name`, `min_temp_celsius`, `max_temp_celsius`, `shelf_life_q10` | | Snapshot of the product at commissioning |
 | `lot_number` | text | `^[0-9A-Za-z._-]{1,20}$`; unique with `product_id` |
 | `production_date`, `expiration_date` | date | expiration ≥ production |
 | `quantity_commissioned` | integer | > 0 |
@@ -171,8 +172,9 @@ never deleted)
 | `sscc` | char(18) | globally unique |
 | `lot_id` | uuid | FK `lots` |
 | `quantity` | integer | > 0 |
-| `gtin`, `product_name`, `lot_number`, `expiration_date` | | Snapshot |
+| `gtin`, `product_name`, `lot_number`, `production_date`, `expiration_date` | | Snapshot |
 | `min_temp_celsius`, `max_temp_celsius` | numeric(5,2) | Snapshot |
+| `shelf_life_q10` | numeric(4,2) | Snapshot |
 | `origin_location_id` | uuid | FK `locations` (the owner's) |
 | `origin_gln`, `origin_name`, `origin_latitude`, `origin_longitude`, `origin_geo_fence_radius_meters` | | Snapshot |
 | `destination_location_id` | uuid | FK `locations` (the consignee's) |
@@ -407,14 +409,21 @@ participation first.
 | `status` | text | |
 | `gtin`, `product_name`, `lot_number` | text | |
 | `min_temp_celsius`, `max_temp_celsius` | numeric(5,2) | |
+| `production_date`, `expiration_date` | date | nullable: absent from events produced before they were added |
+| `shelf_life_q10` | numeric(4,2) | nullable, as above |
+| `monitoring_ended_at` | timestamptz | `occurred_at` of the event that took the shipment out of `CREATED` or `IN_TRANSIT`; nullable |
+| `shelf_life_status` | text | `INTACT`, `REDUCED`, `EXPIRED`: the worst shelf-life status notified; default `INTACT` |
 | `last_event_sequence` | integer | makes projection updates idempotent |
 | `updated_at` | timestamptz | |
 
 - `shipment.created` inserts the row: the owner, the participant tenants, the product snapshot, the bounds,
-  and the assigned driver.
+  the lot's dates and Q10, and the assigned driver.
 - Every later event sets `status` from its subject. `shipment.participant_added` adds the tenant, and a new
   `CARRIER` also clears `assigned_driver_id` (the owner's driver no longer carries the shipment).
-  `shipment.driver_assigned` sets the driver.
+  `shipment.driver_assigned` sets the driver. The first event whose status is not monitored sets
+  `monitoring_ended_at`.
+- The detector raises `shelf_life_status` only, and only when it notifies a worse status
+  ([cold-chain-monitoring.md §8.3](../domain/cold-chain-monitoring.md#83-shelf-life-alerts)).
 - An event at or below `last_event_sequence` is a redelivery and changes nothing. Events of an
   `event_version` other than 1 are skipped.
 - Rows are never deleted.
@@ -443,6 +452,31 @@ participation first.
 - `confirmed_at` is at least 30 seconds after `started_at`, and `ended_at` is not before `confirmed_at`.
 - The runtime role inserts incidents and may update only `ended_at`, `duration_seconds`,
   `extreme_temperature_celsius`, and `updated_at`: the fields that `incident_hash` covers never change.
+
+**`excursion_warnings`** ([cold-chain-monitoring.md §7](../domain/cold-chain-monitoring.md#7-excursion-warnings))
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | uuid | PK |
+| `sscc` | char(18) | unique with `issued_at` |
+| `shipment_id` | uuid | |
+| `device_id` | text | device of the reading that issued the warning |
+| `issued_at` | timestamptz | |
+| `bound` | text | `MAX` (rising) or `MIN` (falling) |
+| `bound_celsius` | numeric(5,2) | value of the bound |
+| `temperature_celsius` | numeric(5,2) | reading that issued the warning |
+| `slope_celsius_per_minute` | numeric(7,3) | fitted slope; positive toward `MAX` |
+| `predicted_excursion_at` | timestamptz | not before `issued_at` |
+| `closed_at` | timestamptz | nullable while open |
+| `outcome` | text | `BREACHED`, `CLEARED`, `INCONCLUSIVE`; null exactly while open |
+| `incident_id` | uuid | set exactly when `BREACHED` |
+| `lead_time_seconds` | integer | set exactly when `BREACHED`; ≥ 0 |
+| `created_at`, `updated_at` | timestamptz | |
+
+- `id` is a UUIDv7 with the issue time, derived from `(sscc, issued_at)`.
+- An SSCC has at most one open warning (partial unique index on `sscc` where `closed_at` is null).
+- The runtime role inserts warnings and may update only `closed_at`, `outcome`, `incident_id`,
+  `lead_time_seconds`, and `updated_at`.
 
 ---
 
